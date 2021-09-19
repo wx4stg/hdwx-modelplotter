@@ -2,7 +2,8 @@
 # Forecast model plotting for next-gen HDWX
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
-from os import listdir, path
+from os import path, listdir
+from pathlib import Path
 import xarray as xr
 from metpy.units import units
 import metpy
@@ -13,12 +14,12 @@ import numpy as np
 from datetime import datetime as dt
 from matplotlib import image as mpimage
 
-def writeJson(productID, gisInfo, validTime, initTime):
+def writeJson(productID, gisInfo, validTime, fhour):
     productFrameDict = {
-        "fhour" : validTime - initTime,
-        "filename" : "savefilenameplaceholder.png",
+        "fhour" : fhour,
+        "filename" : "f"+str(fhour)+".png",
         "gisInfo" : gisInfo,
-        "valid" : validTime
+        "valid" : int(validTime.strftime("%Y%m%d%H%M"))
     }
 
 def set_size(w,h, ax=None):
@@ -33,9 +34,13 @@ def set_size(w,h, ax=None):
 
 
 def tempPlot(modelDataArray):
-    staticSavePath = "output/products/hrrr/sfcTwindMSLP/"
-    gisTempSavePath = "output/gisproducts/hrrr/sfcT/"
-    tempData = modelData["TMPK_HGHT"]
+    initTime = dt.strptime(modelDataArray.attrs["_CoordinateModelRunDate"], "%Y-%m-%dT%H:%M:%SZ")
+    runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
+    staticSavePath = path.join(path.join(basePath, "output/products/hrrr/sfcTwindMSLP/"), runPathExt)
+    gisTempSavePath = path.join(path.join(basePath, "output/gisproducts/hrrr/sfcT/"), runPathExt)
+    Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+    Path(gisTempSavePath).mkdir(parents=True, exist_ok=True)
+    tempData = modelDataArray["TMPK_HGHT"]
     tempData = tempData.isel(time=0)
     if "HGHT1" in tempData.dims:
         tempData = tempData.isel(HGHT1=0)
@@ -50,6 +55,8 @@ def tempPlot(modelDataArray):
     validTime = str(tempData["time"].data)
     validTime = validTime.split(".")[0]
     validTime = dt.strptime(validTime, "%Y-%m-%dT%H:%M:%S")
+    forecastHour = validTime - initTime
+    forecastHour = int(forecastHour.seconds / 3600)
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
@@ -61,7 +68,9 @@ def tempPlot(modelDataArray):
     set_size(1920*px, 1080*px, ax=ax)
     ax.set_extent([modelData.attrs["geospatial_lon_min"], modelData.attrs["geospatial_lon_max"], modelData.attrs["geospatial_lat_min"], modelData.attrs["geospatial_lat_max"]])
     extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-    fig.savefig("test.png", bbox_inches=extent)
+    fig.savefig(path.join(gisTempSavePath, "f"+str(forecastHour)+".png"), transparent=True, bbox_inches=extent)
+    gisInfo = [str(modelData.attrs["geospatial_lat_min"])+","+str(modelData.attrs["geospatial_lon_min"]), str(modelData.attrs["geospatial_lat_max"])+","+str(modelData.attrs["geospatial_lon_max"])]
+    writeJson(300, gisInfo, validTime, forecastHour)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
     cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal")
     cbax.set_xlabel("Temperature (°F)")
@@ -79,12 +88,13 @@ def tempPlot(modelDataArray):
     atmoLogo = mpimage.imread("assets/atmoLogo.png")
     lax.imshow(atmoLogo)
     fig.set_facecolor("white")
-    fig.savefig("static.png", bbox_inches="tight")
-    initTime = dt.strptime(validTime, "%Y-%m-%dT%H:%M:%SZ")
+    fig.savefig(path.join(staticSavePath, "f"+str(forecastHour)+".png"), bbox_inches="tight")
 
 if __name__ == "__main__":
-    inputFiles = listdir("modelData/")
+    basePath = path.dirname(path.abspath(__file__))
+    inputPath = path.join(basePath, "modelData/")
+    inputFiles = listdir(inputPath)
     for file in inputFiles:
-        modelData = xr.open_dataset(path.join("modelData/", file))
+        modelData = xr.open_dataset(path.join(inputPath, file))
         modelData = modelData.metpy.parse_cf()
         tempPlot(modelData)
