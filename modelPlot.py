@@ -13,6 +13,14 @@ import numpy as np
 from datetime import datetime as dt
 from matplotlib import image as mpimage
 
+def writeJson(productID, gisInfo, validTime, initTime):
+    productFrameDict = {
+        "fhour" : validTime - initTime,
+        "filename" : "savefilenameplaceholder.png",
+        "gisInfo" : gisInfo,
+        "valid" : validTime
+    }
+
 def set_size(w,h, ax=None):
     if not ax: ax=plt.gca()
     l = ax.figure.subplotpars.left
@@ -25,6 +33,8 @@ def set_size(w,h, ax=None):
 
 
 def tempPlot(modelDataArray):
+    staticSavePath = "output/products/hrrr/sfcTwindMSLP/"
+    gisTempSavePath = "output/gisproducts/hrrr/sfcT/"
     tempData = modelData["TMPK_HGHT"]
     tempData = tempData.isel(time=0)
     if "HGHT1" in tempData.dims:
@@ -43,16 +53,15 @@ def tempPlot(modelDataArray):
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    #ax = plt.axes(projection=ccrs.epsg(3857))
-    ax = plt.axes(projection=ccrs.PlateCarree())
-    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120)#, transform=ccrs.PlateCarree())
+    ax = plt.axes(projection=ccrs.epsg(3857))
+    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=True)
     ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     set_size(1920*px, 1080*px, ax=ax)
-    ax.set_extent([-109, -85, 25.5, 39.75])
+    ax.set_extent([modelData.attrs["geospatial_lon_min"], modelData.attrs["geospatial_lon_max"], modelData.attrs["geospatial_lat_min"], modelData.attrs["geospatial_lat_max"]])
     extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-    fig.savefig("test.png", extent=extent, transparent=True)
+    fig.savefig("test.png", bbox_inches=extent)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
     cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal")
     cbax.set_xlabel("Temperature (°F)")
@@ -71,6 +80,7 @@ def tempPlot(modelDataArray):
     lax.imshow(atmoLogo)
     fig.set_facecolor("white")
     fig.savefig("static.png", bbox_inches="tight")
+    initTime = dt.strptime(validTime, "%Y-%m-%dT%H:%M:%SZ")
 
 if __name__ == "__main__":
     inputFiles = listdir("modelData/")
