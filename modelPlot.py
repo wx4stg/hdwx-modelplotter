@@ -72,6 +72,13 @@ def staticSFCTempWindMSLPPlot(pathToRead):
     vwind = vwind.metpy.convert_units("kt")
     limit = (slice(None, None, 50), slice(None, None, 50))
     windbarbs = ax.barbs(uwind.longitude.data[limit], uwind.latitude.data[limit], uwind.data[limit], vwind.data[limit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
+    mslpData = modelDataArray["PMSL_NONE"]
+    mslpData = mslpData.isel(time=0)
+    mslpData = mslpData.metpy.assign_latitude_longitude()
+    mslpData = mslpData.metpy.quantify()
+    mslpData = mslpData.metpy.convert_units("hPa")
+    pressContour = ax.contour(mslpData.longitude, mslpData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
+    ax.clabel(pressContour, levels=np.arange(800, 1200, 2), inline=True)
     ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
@@ -141,7 +148,7 @@ def tempPlot(pathToRead):
     fig.savefig(path.join(gisTempSavePath, "f"+str(forecastHour)+".png"), transparent=True, bbox_inches=extent)
     gisInfo = [str(modelDataArray.attrs["geospatial_lat_min"])+","+str(modelDataArray.attrs["geospatial_lon_min"]), str(modelDataArray.attrs["geospatial_lat_max"])+","+str(modelDataArray.attrs["geospatial_lon_max"])]
     writeJson(300, gisInfo, validTime, forecastHour)
-    return fig, contourmap
+    plt.close(fig)
 
 def windPlot(pathToRead):
     basePath = path.dirname(path.abspath(__file__))
@@ -183,10 +190,43 @@ def windPlot(pathToRead):
     forecastHour = int(forecastHour.seconds / 3600)
     fig.savefig(path.join(gisTempSavePath, "f"+str(forecastHour)+".png"), transparent=True, bbox_inches=extent)
     gisInfo = [str(modelDataArray.attrs["geospatial_lat_min"])+","+str(modelDataArray.attrs["geospatial_lon_min"]), str(modelDataArray.attrs["geospatial_lat_max"])+","+str(modelDataArray.attrs["geospatial_lon_max"])]
-    writeJson(301, gisInfo, validTime, forecastHour)
-    
-    return fig, windbarbs
+    writeJson(302, gisInfo, validTime, forecastHour)
+    plt.close(fig)
 
+def mslpPlot(pathToRead):
+    basePath = path.dirname(path.abspath(__file__))
+    modelDataArray = xr.open_dataset(pathToRead)
+    modelDataArray = modelDataArray.metpy.parse_cf()
+    initTime = dt.strptime(modelDataArray.attrs["_CoordinateModelRunDate"], "%Y-%m-%dT%H:%M:%SZ")
+    runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
+    gisTempSavePath = path.join(path.join(basePath, "output/gisproducts/hrrr/mslp/"), runPathExt)
+    Path(gisTempSavePath).mkdir(parents=True, exist_ok=True)
+    fig = plt.figure()
+    px = 1/plt.rcParams["figure.dpi"]
+    fig.set_size_inches(1920*px, 1080*px)
+    ax = plt.axes(projection=ccrs.epsg(3857))
+    mslpData = modelDataArray["PMSL_NONE"]
+    mslpData = mslpData.isel(time=0)
+    mslpData = mslpData.metpy.assign_latitude_longitude()
+    mslpData = mslpData.metpy.quantify()
+    mslpData = mslpData.metpy.convert_units("hPa")
+    pressContour = ax.contour(mslpData.longitude, mslpData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
+    ax.clabel(pressContour, levels=np.arange(800, 1200, 2), inline=True)
+    ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    set_size(1920*px, 1080*px, ax=ax)
+    ax.set_extent([modelDataArray.attrs["geospatial_lon_min"], modelDataArray.attrs["geospatial_lon_max"], modelDataArray.attrs["geospatial_lat_min"], modelDataArray.attrs["geospatial_lat_max"]])
+    extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+    validTime = str(mslpData["time"].data)
+    validTime = validTime.split(".")[0]
+    validTime = dt.strptime(validTime, "%Y-%m-%dT%H:%M:%S")
+    forecastHour = validTime - initTime
+    forecastHour = int(forecastHour.seconds / 3600)
+    fig.savefig(path.join(gisTempSavePath, "f"+str(forecastHour)+".png"), transparent=True, bbox_inches=extent)
+    gisInfo = [str(modelDataArray.attrs["geospatial_lat_min"])+","+str(modelDataArray.attrs["geospatial_lon_min"]), str(modelDataArray.attrs["geospatial_lat_max"])+","+str(modelDataArray.attrs["geospatial_lon_max"])]
+    writeJson(301, gisInfo, validTime, forecastHour)
+    plt.close(fig)
 
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
@@ -194,6 +234,7 @@ if __name__ == "__main__":
     for file in sorted(listdir(inputPath)):
         fPath = path.join(inputPath, file)
         windPlot(fPath)
+        mslpPlot(fPath)
         tempPlot(fPath)
         staticSFCTempWindMSLPPlot(fPath)
 
