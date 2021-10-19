@@ -41,44 +41,47 @@ def staticSFCTempWindMSLPPlot(pathToRead):
     runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(path.join(basePath, "output/products/hrrr/sfcTwindMSLP/"), runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-    tempData = modelDataArray["TMPK_HGHT"]
-    tempData = tempData.isel(time=0)
-    if "HGHT1" in tempData.dims:
-        tempData = tempData.isel(HGHT1=0)
-    elif "HGHT2" in tempData.dims:
-        tempData = tempData.isel(HGHT2=0)
-    else:
-        print("Height variable not found, this will probably fail shortly...")
-        print(tempData.dims)
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
     ax = plt.axes(projection=ccrs.epsg(3857))
-    tempData = tempData.metpy.assign_latitude_longitude()
-    tempData = tempData.metpy.quantify()
-    tempData = tempData.metpy.convert_units("degF")
-    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=True)
-    uwind = modelDataArray["UREL_HGHT"]
-    uwind = uwind.isel(time=0)
-    uwind = uwind.isel(HGHT=0)
-    uwind = uwind.metpy.assign_latitude_longitude()
-    uwind = uwind.metpy.quantify()
-    uwind = uwind.metpy.convert_units("kt")
-    vwind = modelDataArray["VREL_HGHT"]
-    vwind = vwind.isel(time=0)
-    vwind = vwind.isel(HGHT=0)
-    vwind = vwind.metpy.assign_latitude_longitude()
-    vwind = vwind.metpy.quantify()
-    vwind = vwind.metpy.convert_units("kt")
-    limit = (slice(None, None, 50), slice(None, None, 50))
-    windbarbs = ax.barbs(uwind.longitude.data[limit], uwind.latitude.data[limit], uwind.data[limit], vwind.data[limit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
-    mslpData = modelDataArray["PMSL_NONE"]
-    mslpData = mslpData.isel(time=0)
-    mslpData = mslpData.metpy.assign_latitude_longitude()
-    mslpData = mslpData.metpy.quantify()
-    mslpData = mslpData.metpy.convert_units("hPa")
-    pressContour = ax.contour(mslpData.longitude, mslpData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
-    ax.clabel(pressContour, levels=np.arange(800, 1200, 2), inline=True)
+    if "TMPK_HGHT" in dict(modelDataArray.data_vars).keys():
+        tempData = modelDataArray["TMPK_HGHT"]
+        tempData = tempData.isel(time=0)
+        if "HGHT1" in tempData.dims:
+            tempData = tempData.isel(HGHT1=0)
+        elif "HGHT2" in tempData.dims:
+            tempData = tempData.isel(HGHT2=0)
+        else:
+            print("Height variable not found, this will probably fail shortly...")
+            print(tempData.dims)
+        tempData = tempData.metpy.assign_latitude_longitude()
+        tempData = tempData.metpy.quantify()
+        tempData = tempData.metpy.convert_units("degF")
+        contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=True)
+    if "UREL_HGHT" in dict(modelDataArray.data_vars).keys() and "VREL_HGHT" in dict(modelDataArray.data_vars).keys():
+        uwind = modelDataArray["UREL_HGHT"]
+        uwind = uwind.isel(time=0)
+        uwind = uwind.isel(HGHT=0)
+        uwind = uwind.metpy.assign_latitude_longitude()
+        uwind = uwind.metpy.quantify()
+        uwind = uwind.metpy.convert_units("kt")
+        vwind = modelDataArray["VREL_HGHT"]
+        vwind = vwind.isel(time=0)
+        vwind = vwind.isel(HGHT=0)
+        vwind = vwind.metpy.assign_latitude_longitude()
+        vwind = vwind.metpy.quantify()
+        vwind = vwind.metpy.convert_units("kt")
+        limit = (slice(None, None, 50), slice(None, None, 50))
+        windbarbs = ax.barbs(uwind.longitude.data[limit], uwind.latitude.data[limit], uwind.data[limit], vwind.data[limit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
+    if "PMSL_NONE" in dict(modelDataArray.data_vars).keys():
+        mslpData = modelDataArray["PMSL_NONE"]
+        mslpData = mslpData.isel(time=0)
+        mslpData = mslpData.metpy.assign_latitude_longitude()
+        mslpData = mslpData.metpy.quantify()
+        mslpData = mslpData.metpy.convert_units("hPa")
+        pressContour = ax.contour(mslpData.longitude, mslpData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
+        ax.clabel(pressContour, levels=np.arange(800, 1200, 2), inline=True)
     ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
@@ -112,6 +115,8 @@ def staticSFCTempWindMSLPPlot(pathToRead):
 def tempPlot(pathToRead):
     basePath = path.dirname(path.abspath(__file__))
     modelDataArray = xr.open_dataset(pathToRead)
+    if "TMPK_HGHT" not in dict(modelDataArray.data_vars).keys():
+        return
     modelDataArray = modelDataArray.metpy.parse_cf()
     initTime = dt.strptime(modelDataArray.attrs["_CoordinateModelRunDate"], "%Y-%m-%dT%H:%M:%SZ")
     runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
@@ -153,6 +158,10 @@ def tempPlot(pathToRead):
 def windPlot(pathToRead):
     basePath = path.dirname(path.abspath(__file__))
     modelDataArray = xr.open_dataset(pathToRead)
+    if "UREL_HGHT" not in dict(modelDataArray.data_vars).keys():
+        return
+    if "VREL_HGHT" not in dict(modelDataArray.data_vars).keys():
+        return
     modelDataArray = modelDataArray.metpy.parse_cf()
     initTime = dt.strptime(modelDataArray.attrs["_CoordinateModelRunDate"], "%Y-%m-%dT%H:%M:%SZ")
     runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
@@ -196,6 +205,8 @@ def windPlot(pathToRead):
 def mslpPlot(pathToRead):
     basePath = path.dirname(path.abspath(__file__))
     modelDataArray = xr.open_dataset(pathToRead)
+    if "PMSL_NONE" not in dict(modelDataArray.data_vars).keys():
+        return
     modelDataArray = modelDataArray.metpy.parse_cf()
     initTime = dt.strptime(modelDataArray.attrs["_CoordinateModelRunDate"], "%Y-%m-%dT%H:%M:%SZ")
     runPathExt = initTime.strftime("%Y/%m/%d/%H%M")
@@ -231,12 +242,15 @@ def mslpPlot(pathToRead):
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
     inputPath = path.join(basePath, "modelData/")
-    for file in sorted(listdir(inputPath)):
+    for file in reversed(sorted(listdir(inputPath))):
         fPath = path.join(inputPath, file)
-        windPlot(fPath)
-        mslpPlot(fPath)
-        tempPlot(fPath)
-        staticSFCTempWindMSLPPlot(fPath)
+        try:
+            windPlot(fPath)
+            mslpPlot(fPath)
+            tempPlot(fPath)
+            staticSFCTempWindMSLPPlot(fPath)
+        except:
+            continue
 
 
     # inputFiles = [path.join(inputPath, file) for file in sorted(listdir(inputPath))]
