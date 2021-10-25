@@ -128,8 +128,16 @@ def windPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
-    limit = slice(None, None, 5)
-    windbarbs = ax.barbs(uwind.longitude.data[limit], uwind.latitude.data[limit], uwind.data[(limit, limit)], vwind.data[(limit, limit)], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
+    if modelName == "gfs":
+        spatialLimit = slice(None, None, 5)
+        dataLimit = (slice(None, None, 5), slice(None, None, 5))
+    elif modelName == "nam":
+        spatialLimit = (slice(None, None, 10), slice(None, None, 10))
+        dataLimit = (slice(None, None, 10), slice(None, None, 10))
+    elif modelName == "namnest" or modelName == "hrrr":
+        spatialLimit = (slice(None, None, 40), slice(None, None, 40))
+        dataLimit = (slice(None, None, 40), slice(None, None, 40))
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
     if standaloneFig:
         ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
         ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
@@ -163,7 +171,12 @@ def mslpPlot(standaloneFig, ax=None):
     mslpData = barometricPressData * np.exp(orogData*constants.earth_gravity/(constants.dry_air_gas_constant*tempData))
     mslpData = mslpData.metpy.quantify()
     mslpData = mslpData.metpy.convert_units("hPa")
-    mslpData = ndimage.gaussian_filter(mslpData.data, 3)
+    # Unidata says smoothing MSLP "a little" is... well they didn't comment on why, they just did it, and it makes the rocky mtns less noisy...
+    # https://unidata.github.io/python-gallery/examples/MSLP_temp_winds.html
+    if modelName == "namnest" or modelName == "hrrr":
+        mslpData = ndimage.gaussian_filter(mslpData.data, 5)
+    else:
+        mslpData = ndimage.gaussian_filter(mslpData.data, 3)
     if standaloneFig:
         fig = plt.figure()
         px = 1/plt.rcParams["figure.dpi"]
