@@ -126,9 +126,9 @@ def staticSFCTempWindMSLPPlot():
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
     set_size(1920*px, 1080*px, ax=ax)
-    ax.set_extent([-130, -60, 20, 50])
     contourmap = tempPlot(False, ax=ax)
     validTime = windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
@@ -157,7 +157,8 @@ def staticSFCTempWindMSLPPlot():
     fig.savefig(staticSavePath+"/f"+str(fhour)+".png", bbox_inches="tight")
     plt.close(fig)
     gisInfo = ["0,0", "0,0"]
-    writeJson(304, gisInfo, validTime, fhour)
+    productId = productTypeBase + 3
+    writeJson(productId, gisInfo, validTime, fhour)
 
 def tempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
@@ -175,13 +176,10 @@ def tempPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree())
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
@@ -209,6 +207,7 @@ def windPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
         spatialLimit = slice(None, None, 5)
         dataLimit = (slice(None, None, 5), slice(None, None, 5))
@@ -220,11 +219,7 @@ def windPlot(standaloneFig, ax=None):
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
     windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
@@ -264,13 +259,10 @@ def mslpPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree())
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
@@ -279,7 +271,7 @@ def mslpPlot(standaloneFig, ax=None):
     if standaloneFig:
         validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
         gisInfo = ["20,-130", "50,-60"]
-        productId = productTypeBase + 1
+        productId = productTypeBase + 2
         writeJson(productId, gisInfo, validTime, fhour)
 
 if __name__ == "__main__":
