@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path
+from os import path, remove
 from pathlib import Path
 import xarray as xr
 from metpy import constants
@@ -16,14 +16,95 @@ from datetime import datetime as dt
 from pandas import Timestamp as pdtimestamp
 from matplotlib import image as mpimage
 from scipy import ndimage
+import json
 
 # modelPlot.py <model> <initialization> <fhour>
 modelName = sys.argv[1]
 initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
 basePath = path.dirname(path.abspath(__file__))
+if modelName == "gfs":
+    productTypeBase = 300
+elif modelName == "nam":
+    productTypeBase = 500
+elif modelName == "namnest":
+    productTypeBase = 600
+elif modelName == "hrrr":
+    productTypeBase = 800
+else:
+    raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
 
 def writeJson(productID, gisInfo, validTime, fhour):
+    if productID == 300:
+        productDesc = "GFS Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 301:
+        productDesc = "GFS Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 302:
+        productDesc = "GFS Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 303:
+        productDesc = "GFS Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 500:
+        productDesc = "NAM Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 501:
+        productDesc = "NAM Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 502:
+        productDesc = "NAM Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 503:
+        productDesc = "NAM Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 600:
+        productDesc = "NAM NEST Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 601:
+        productDesc = "NAM NEST Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 602:
+        productDesc = "NAM NEST Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 603:
+        productDesc = "NAM NEST Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 800:
+        productDesc = "HRRR Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 801:
+        productDesc = "HRRR Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 802:
+        productDesc = "HRRR Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 803:
+        productDesc = "HRRR Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    if gisInfo == ["0,0", "0,0"]:
+        isGIS = False
+        productPath = "products/"
+    else:
+        isGIS = True
+        productPath = "gisproducts/"
+    productPath = productPath+modelName+"/"+dirname+"/"+initDateTime.strftime("%Y/%m/%d/%H%M/")
+    productDict = {
+        "productID" : productID,
+        "productDescription" : productDesc,
+        "productPath" : productPath,
+        "productReloadTime" : 300,
+        "lastReloadTime" : dt.utcnow().strftime("%Y%m%d%H%M"),
+        "isForecast" : True,
+        "isGIS" : isGIS
+    }
+    productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
+    Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
+    if path.exists(productDictJsonPath):
+        remove(productDictJsonPath)
+    with open(productDictJsonPath, "w") as jsonWrite:
+        json.dump(productDict, jsonWrite, indent=4)
     productFrameDict = {
         "fhour" : fhour,
         "filename" : "f"+str(fhour)+".png",
@@ -71,11 +152,11 @@ def staticSFCTempWindMSLPPlot():
     lax.imshow(atmoLogo)
     fig.set_facecolor("white")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
-    staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTwindMSLP/"+runPathExt)
+    staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTWndMSLP/"+runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
     fig.savefig(staticSavePath+"/f"+str(fhour)+".png", bbox_inches="tight")
     plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
+    gisInfo = ["0,0", "0,0"]
     writeJson(304, gisInfo, validTime, fhour)
 
 def tempPlot(standaloneFig, ax=None):
@@ -104,8 +185,8 @@ def tempPlot(standaloneFig, ax=None):
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(300, gisInfo, validTime, fhour)
+        gisInfo = ["20,-130", "50,-60"]
+        writeJson(productTypeBase, gisInfo, validTime, fhour)
     if not standaloneFig:
         return contourmap
 
@@ -148,7 +229,8 @@ def windPlot(standaloneFig, ax=None):
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
         gisInfo = ["20,-130", "50,-60"]
-        writeJson(302, gisInfo, validTime, fhour)
+        productId = productTypeBase + 1
+        writeJson(productId, gisInfo, validTime, fhour)
     if not standaloneFig:
         return validTime
 
@@ -194,9 +276,11 @@ def mslpPlot(standaloneFig, ax=None):
         plt.close(fig)
     contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1200, 2), inline=True, fontsize=15)
     [label.set_rotation(0) for label in contourLabels]
-    validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(301, gisInfo, validTime, fhour)
+    if standaloneFig:
+        validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
+        gisInfo = ["20,-130", "50,-60"]
+        productId = productTypeBase + 1
+        writeJson(productId, gisInfo, validTime, fhour)
 
 if __name__ == "__main__":
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
