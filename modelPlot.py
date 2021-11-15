@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path
+from os import path, remove, listdir
 from pathlib import Path
 import xarray as xr
 from metpy import constants
@@ -12,24 +12,143 @@ from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 from matplotlib import pyplot as plt
 import numpy as np
-from datetime import datetime as dt
+from datetime import datetime as dt, timedelta
 from pandas import Timestamp as pdtimestamp
 from matplotlib import image as mpimage
 from scipy import ndimage
+import json
 
 # modelPlot.py <model> <initialization> <fhour>
 modelName = sys.argv[1]
 initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
 basePath = path.dirname(path.abspath(__file__))
+if modelName == "gfs":
+    productTypeBase = 300
+    productFrameCount = 209
+elif modelName == "nam":
+    productTypeBase = 500
+    productFrameCount = 53
+elif modelName == "namnest":
+    productTypeBase = 600
+    productFrameCount = 61
+elif modelName == "hrrr":
+    productTypeBase = 800
+    if initDateTime.hour in [0, 6, 12, 18]:
+        productFrameCount = 49
+    else:
+        productFrameCount = 19
+else:
+    raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
 
 def writeJson(productID, gisInfo, validTime, fhour):
-    productFrameDict = {
-        "fhour" : fhour,
-        "filename" : "f"+str(fhour)+".png",
-        "gisInfo" : gisInfo,
-        "valid" : int(validTime.strftime("%Y%m%d%H%M"))
+    if productID == 300:
+        productDesc = "GFS Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 301:
+        productDesc = "GFS Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 302:
+        productDesc = "GFS Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 303:
+        productDesc = "GFS Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 500:
+        productDesc = "NAM Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 501:
+        productDesc = "NAM Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 502:
+        productDesc = "NAM Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 503:
+        productDesc = "NAM Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 600:
+        productDesc = "NAM NEST Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 601:
+        productDesc = "NAM NEST Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 602:
+        productDesc = "NAM NEST Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 603:
+        productDesc = "NAM NEST Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 800:
+        productDesc = "HRRR Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 801:
+        productDesc = "HRRR Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 802:
+        productDesc = "HRRR Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 803:
+        productDesc = "HRRR Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    if gisInfo == ["0,0", "0,0"]:
+        isGIS = False
+        productPath = "products/"
+    else:
+        isGIS = True
+        productPath = "gisproducts/"
+    productPath = productPath+modelName+"/"+dirname+"/"
+    pathExtension = initDateTime.strftime("%Y/%m/%d/%H%M/")
+    publishTime = dt.utcnow()
+    productDict = {
+        "productID" : productID,
+        "productDescription" : productDesc,
+        "productPath" : productPath,
+        "productReloadTime" : 300,
+        "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
+        "isForecast" : True,
+        "isGIS" : isGIS
     }
+    productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
+    Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
+    if path.exists(productDictJsonPath):
+        remove(productDictJsonPath)
+    with open(productDictJsonPath, "w") as jsonWrite:
+        json.dump(productDict, jsonWrite, indent=4)
+    # productFrameDict = {
+    #     "fhour" : fhour,
+    #     "filename" : "f"+str(fhour)+".png",
+    #     "gisInfo" : gisInfo,
+    #     "valid" : int(validTime.strftime("%Y%m%d%H%M"))
+    # }
+    productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
+    Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
+    if path.exists(productRunDictPath):
+        remove(productRunDictPath)
+    framesArray = list()
+    if len(listdir(path.join(basePath, "output/"+productPath+pathExtension))) > 0:
+        frameNames = listdir(path.join(basePath, "output/"+productPath+pathExtension))
+        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames]
+        for frameHr in frameHours:
+            fvalidTime = initDateTime + timedelta(hours=frameHr)
+            frmDict = {
+                "fhour" : frameHr,
+                "filename" : "f"+str(frameHr)+".png",
+                "gisInfo" : gisInfo,
+                "valid" : int(fvalidTime.strftime("%Y%m%d%H%M"))
+            }
+            framesArray.append(frmDict)
+    # framesArray.append(productFrameDict)
+    productRunDict = {
+        "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
+        "pathExtension" : pathExtension,
+        "runName" : initDateTime.strftime("%d %b %Y %HZ"),
+        "availableFrameCount" : len(framesArray),
+        "totalFrameCount" : productFrameCount,
+        "productFrames" : framesArray
+    }
+    with open(productRunDictPath, "w") as jsonWrite:
+        json.dump(productRunDict, jsonWrite, indent=4)
+    
 
 def set_size(w,h, ax=None):
     if not ax: ax=plt.gca()
@@ -45,9 +164,9 @@ def staticSFCTempWindMSLPPlot():
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
     set_size(1920*px, 1080*px, ax=ax)
-    ax.set_extent([-130, -60, 20, 50])
     contourmap = tempPlot(False, ax=ax)
     validTime = windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
@@ -71,12 +190,13 @@ def staticSFCTempWindMSLPPlot():
     lax.imshow(atmoLogo)
     fig.set_facecolor("white")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
-    staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTwindMSLP/"+runPathExt)
+    staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTWndMSLP/"+runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
     fig.savefig(staticSavePath+"/f"+str(fhour)+".png", bbox_inches="tight")
     plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(304, gisInfo, validTime, fhour)
+    gisInfo = ["0,0", "0,0"]
+    productId = productTypeBase + 3
+    writeJson(productId, gisInfo, validTime, fhour)
 
 def tempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
@@ -94,18 +214,15 @@ def tempPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree())
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(300, gisInfo, validTime, fhour)
+        gisInfo = ["20,-130", "50,-60"]
+        writeJson(productTypeBase, gisInfo, validTime, fhour)
     if not standaloneFig:
         return contourmap
 
@@ -128,6 +245,7 @@ def windPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
         spatialLimit = slice(None, None, 5)
         dataLimit = (slice(None, None, 5), slice(None, None, 5))
@@ -139,16 +257,13 @@ def windPlot(standaloneFig, ax=None):
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
     windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
         gisInfo = ["20,-130", "50,-60"]
-        writeJson(302, gisInfo, validTime, fhour)
+        productId = productTypeBase + 1
+        writeJson(productId, gisInfo, validTime, fhour)
     if not standaloneFig:
         return validTime
 
@@ -182,21 +297,20 @@ def mslpPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree())
     if standaloneFig:
-        ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
-        ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
-        ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
         set_size(1920*px, 1080*px, ax=ax)
-        ax.set_extent([-130, -60, 20, 50])
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
     contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1200, 2), inline=True, fontsize=15)
     [label.set_rotation(0) for label in contourLabels]
-    validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(301, gisInfo, validTime, fhour)
+    if standaloneFig:
+        validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
+        gisInfo = ["20,-130", "50,-60"]
+        productId = productTypeBase + 2
+        writeJson(productId, gisInfo, validTime, fhour)
 
 if __name__ == "__main__":
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))

@@ -29,4 +29,5 @@ done
 mkdir -p output/gisproducts/hrrr/sfcT/
 mkdir -p output/products/hrrr/sfcTwindMSLP/
 
+
 ~/miniconda3/envs/HDWX/bin/python3 modelPlot.py
