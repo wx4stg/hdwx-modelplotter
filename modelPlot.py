@@ -114,12 +114,6 @@ def writeJson(productID, gisInfo, validTime, fhour):
         remove(productDictJsonPath)
     with open(productDictJsonPath, "w") as jsonWrite:
         json.dump(productDict, jsonWrite, indent=4)
-    # productFrameDict = {
-    #     "fhour" : fhour,
-    #     "filename" : "f"+str(fhour)+".png",
-    #     "gisInfo" : gisInfo,
-    #     "valid" : int(validTime.strftime("%Y%m%d%H%M"))
-    # }
     productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     if path.exists(productRunDictPath):
@@ -137,7 +131,6 @@ def writeJson(productID, gisInfo, validTime, fhour):
                 "valid" : int(fvalidTime.strftime("%Y%m%d%H%M"))
             }
             framesArray.append(frmDict)
-    # framesArray.append(productFrameDict)
     productRunDict = {
         "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
         "pathExtension" : pathExtension,
