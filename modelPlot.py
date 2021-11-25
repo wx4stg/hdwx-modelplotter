@@ -18,10 +18,11 @@ from matplotlib import image as mpimage
 from scipy import ndimage
 import json
 
-# modelPlot.py <model> <initialization> <fhour>
+# modelPlot.py <model> <initialization> <fhour> <field to plot>
 modelName = sys.argv[1]
 initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
+fieldToPlot = sys.argv[4]
 basePath = path.dirname(path.abspath(__file__))
 if modelName == "gfs":
     productTypeBase = 300
@@ -310,18 +311,11 @@ if __name__ == "__main__":
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
     sfcPressPath = path.join(inputPath, "sp.grib2")
-    canPlotTempWindMSLP = True
-    if path.exists(sfcTempPath):
+    if fieldToPlot == "t2m" and path.exists(sfcTempPath):
         tempPlot(True)
-    else:
-        canPlotTempWindMSLP = False
-    if path.exists(sfcWindsPath):
+    if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
         windPlot(True)
-    else:
-        canPlotTempWindMSLP = False
-    if path.exists(sfcPressPath) and path.exists(sfcTempPath):
+    if fieldToPlot == "sp" and path.exists(sfcPressPath):
         mslpPlot(True)
-    else:
-        canPlotTempWindMSLP = False
-    if canPlotTempWindMSLP:
+    if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
         staticSFCTempWindMSLPPlot()
