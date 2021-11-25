@@ -37,7 +37,7 @@ if __name__ == "__main__":
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl?file=nam.t<MODEL_INIT_TIME>z.conusnest.hiresf<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
     elif modelName == "hrrr":
         productTypeBase = 800
-        initTimes = list(range(0, 19, 6))
+        initTimes = list(range(0, 24, 1))
         fHoursLongRun = list(range(0, 49, 1))
         fHoursShortRun = list(range(0, 19, 1))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
@@ -47,7 +47,12 @@ if __name__ == "__main__":
     toRuns = [(toDate + timedelta(hours=target)).strftime("%Y%m%d%H%M") for target in initTimes if (toDate + timedelta(hours=target)) < dt.utcnow()]
     recentRuns = yesterRuns+toRuns
     if modelName == "hrrr":
-        hoursToRequest = {recentRun:fHours for recentRun in recentRuns}
+        hoursToRequest = dict()
+        for recentRun in recentRuns:
+            if int(recentRun[-4:-2]) in list(range(0, 19, 6)):
+                hoursToRequest[recentRun] = fHoursLongRun
+            else:
+                hoursToRequest[recentRun] = fHoursShortRun
     else:
         hoursToRequest = {recentRun:fHours for recentRun in recentRuns}
     productsToRequest = [hoursToRequest for _ in range(0, len(reqVariableAddons))]
@@ -79,17 +84,32 @@ if __name__ == "__main__":
                 initDate = initRun[:-4]
                 initTime = initRun[-4:-2]
                 for requestedForecastHourI in requestedHoursForRun:
-                    requestedForecastHour = str(f'{requestedForecastHourI:02}')
-                    requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
-                    urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
-                    if "GRIB" in requests.get(urlToFetch).text:
-                        print(".", end="")
+                    shouldSkipDownload = False
+                    if type(reqVariableAddons[prodAddon]) == list:
+                        shouldSkipDownload = True
+                        for compositeAddon in reqVariableAddons[prodAddon]:
+                            if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
+                                shouldSkipDownload = False
+                    if shouldSkipDownload:
+                        logfile = open("debug.txt", "a")
+                        logfile.write("Skipped DL...\n")
+                        logfile.close()
                     else:
-                        print("\n")
-                        print(modelName)
-                        print(initDate)
-                        print(initTime)
-                        print(requestedForecastHourLong)
-                        print(prodAddon)
-                        print("\n")
+                        requestedForecastHour = str(f'{requestedForecastHourI:02}')
+                        requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
+                        urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
+                    if "GRIB" in requests.get(urlToFetch).text:
+                        logfile = open("debug.txt", "a")
+                        logfile.write(".")
+                        logfile.close()
+                    else:
+                        logfile = open("debug.txt", "a")
+                        logfile.write("\n\n")
+                        logfile.write(modelName+"\n")
+                        logfile.write(initDate+"\n")
+                        logfile.write(initTime+"\n")
+                        logfile.write(requestedForecastHourLong+"\n")
+                        logfile.write(str(prodAddon))
+                        logfile.write("\n\n")
+                        logfile.close()
                     
