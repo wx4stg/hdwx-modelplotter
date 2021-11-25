@@ -7,6 +7,9 @@ from datetime import datetime as dt, timedelta
 from os import path, listdir
 import json
 import requests
+from pathlib import Path
+import subprocess
+import sys
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
 if __name__ == "__main__":
@@ -57,6 +60,14 @@ if __name__ == "__main__":
         hoursToRequest = {recentRun:fHours for recentRun in recentRuns}
     productsToRequest = [hoursToRequest for _ in range(0, len(reqVariableAddons))]
     for prodAddon in range(0, len(productsToRequest)):
+        if prodAddon == 0:
+            fieldToGen = "t2m"
+        elif prodAddon == 1:
+            fieldToGen = "sfcwind"
+        elif prodAddon == 2:
+            fieldToGen = "sp"
+        elif prodAddon == 3:
+            fieldToGen = "sfccomposite"
         productIDToCheck = prodAddon + productTypeBase
         metadataPath = path.join(basePath, "output/metadata/products/"+str(productIDToCheck)+"/")
         if path.exists(metadataPath):
@@ -91,25 +102,21 @@ if __name__ == "__main__":
                             if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
                                 shouldSkipDownload = False
                     if shouldSkipDownload:
-                        logfile = open("debug.txt", "a")
-                        logfile.write("Skipped DL...\n")
-                        logfile.close()
+                            subprocess.Popen([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun, requestedForecastHour, fieldToGen])
                     else:
                         requestedForecastHour = str(f'{requestedForecastHourI:02}')
                         requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
                         urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
-                    if "GRIB" in requests.get(urlToFetch).text:
-                        logfile = open("debug.txt", "a")
-                        logfile.write(".")
-                        logfile.close()
-                    else:
-                        logfile = open("debug.txt", "a")
-                        logfile.write("\n\n")
-                        logfile.write(modelName+"\n")
-                        logfile.write(initDate+"\n")
-                        logfile.write(initTime+"\n")
-                        logfile.write(requestedForecastHourLong+"\n")
-                        logfile.write(str(prodAddon))
-                        logfile.write("\n\n")
-                        logfile.close()
-                    
+                        if "TMP" in reqVariableAddon:
+                            saveFileName = "t2m.grib2"
+                        elif "UGRD" in reqVariableAddon:
+                            saveFileName = "sfcwind.grib2"
+                        elif "PRES" in reqVariableAddon:
+                            saveFileName = "sp.grib2"
+                        modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
+                        Path(path.dirname(modelDataPath)).mkdir(parents=True, exist_ok=True)
+                        modelData = requests.get(urlToFetch)
+                        if "GRIB" in modelData.text:
+                            with open(modelDataPath, "wb") as f:
+                                f.write(modelData.content)
+                            subprocess.Popen([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun, requestedForecastHour, fieldToGen])
