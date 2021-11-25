@@ -17,6 +17,7 @@ from pandas import Timestamp as pdtimestamp
 from matplotlib import image as mpimage
 from scipy import ndimage
 import json
+import warnings
 
 # modelPlot.py <model> <initialization> <fhour> <field to plot>
 modelName = sys.argv[1]
@@ -138,7 +139,7 @@ def writeJson(productID, gisInfo, validTime, fhour):
         "runName" : initDateTime.strftime("%d %b %Y %HZ"),
         "availableFrameCount" : len(framesArray),
         "totalFrameCount" : productFrameCount,
-        "productFrames" : framesArray
+        "productFrames" : sorted(framesArray, key=lambda dict: dict["fhour"]) 
     }
     with open(productRunDictPath, "w") as jsonWrite:
         json.dump(productRunDict, jsonWrite, indent=4)
@@ -194,8 +195,9 @@ def staticSFCTempWindMSLPPlot():
 
 def tempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
-    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-    modelDataArray = modelDataArray.metpy.parse_cf()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcT/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -222,8 +224,9 @@ def tempPlot(standaloneFig, ax=None):
 
 def windPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sfcwind.grib2")
-    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-    modelDataArray = modelDataArray.metpy.parse_cf()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcWnd/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -263,8 +266,9 @@ def windPlot(standaloneFig, ax=None):
 
 def mslpPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sp.grib2")
-    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-    modelDataArray = modelDataArray.metpy.parse_cf()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -272,7 +276,9 @@ def mslpPlot(standaloneFig, ax=None):
     barometricPressData = barometricPressData.metpy.quantify()
     orogData = modelDataArray["orog"]
     orogData = orogData.metpy.quantify()
-    tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib").metpy.parse_cf()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
     tempData = tempData["t2m"]
     tempData = tempData.metpy.quantify()
     # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
@@ -307,7 +313,7 @@ def mslpPlot(standaloneFig, ax=None):
         writeJson(productId, gisInfo, validTime, fhour)
 
 if __name__ == "__main__":
-    inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
+    inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
     sfcPressPath = path.join(inputPath, "sp.grib2")
@@ -319,3 +325,4 @@ if __name__ == "__main__":
         mslpPlot(True)
     if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
         staticSFCTempWindMSLPPlot()
+    [remove(path.join(inputPath, idxFile)) for idxFile in listdir(inputPath) if idxFile.endswith("idx")]

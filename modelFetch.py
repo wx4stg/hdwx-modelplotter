@@ -71,17 +71,28 @@ if __name__ == "__main__":
         productIDToCheck = prodAddon + productTypeBase
         metadataPath = path.join(basePath, "output/metadata/products/"+str(productIDToCheck)+"/")
         if path.exists(metadataPath):
+            print("Found metadata for "+fieldToGen)
             for run in recentRuns:
+                print("Looking for json file for run "+run)
                 runFile = path.join(metadataPath, run+".json")
                 if path.exists(runFile):
+                    print("Found file, reading dict")
                     runJsonData = dict()
                     with open(runFile) as jsonRead:
                         runJsonData = json.load(jsonRead)
                     if runJsonData["availableFrameCount"] == runJsonData["totalFrameCount"]:
-                        productsToRequest[prodAddon].pop(run)
+                        print("Run is already complete, popping from main dict")
+                        print(productsToRequest[prodAddon].keys())
+                        print(run)
+                        print("\n")
+                        productToTrim = productsToRequest[prodAddon].copy()
+                        productToTrim.pop(run)
+                        productsToRequest[prodAddon] = productToTrim
                     else:
                         frmsToDelete = [frame["fhour"] for frame in runJsonData["productFrames"]]
-                        oldArr = productsToRequest[productIDToCheck][run]
+                        print("Run is partially complete, removing frames: ")
+                        print(sorted(frmsToDelete))
+                        oldArr = productsToRequest[prodAddon][run]
                         newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
                         productsToRequest[prodAddon][run] = newArr
         for initRun in productsToRequest[prodAddon]:
@@ -95,17 +106,19 @@ if __name__ == "__main__":
                 initDate = initRun[:-4]
                 initTime = initRun[-4:-2]
                 for requestedForecastHourI in requestedHoursForRun:
+                    requestedForecastHour = str(f'{requestedForecastHourI:02}')
+                    requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
                     shouldSkipDownload = False
                     if type(reqVariableAddons[prodAddon]) == list:
                         shouldSkipDownload = True
                         for compositeAddon in reqVariableAddons[prodAddon]:
-                            if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
-                                shouldSkipDownload = False
+                            if len(productsToRequest) > compositeAddon:
+                                if initRun in productsToRequest[compositeAddon].keys():
+                                    if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
+                                        shouldSkipDownload = False
                     if shouldSkipDownload:
                             subprocess.Popen([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun, requestedForecastHour, fieldToGen])
                     else:
-                        requestedForecastHour = str(f'{requestedForecastHourI:02}')
-                        requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
                         urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
                         if "TMP" in reqVariableAddon:
                             saveFileName = "t2m.grib2"
@@ -113,7 +126,7 @@ if __name__ == "__main__":
                             saveFileName = "sfcwind.grib2"
                         elif "PRES" in reqVariableAddon:
                             saveFileName = "sp.grib2"
-                        modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
+                        modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initDate+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
                         Path(path.dirname(modelDataPath)).mkdir(parents=True, exist_ok=True)
                         modelData = requests.get(urlToFetch)
                         if "GRIB" in modelData.text:
