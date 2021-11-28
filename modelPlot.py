@@ -7,6 +7,7 @@ from os import path, remove, listdir
 from pathlib import Path
 import xarray as xr
 from metpy import constants
+from metpy.plots import USCOUNTIES
 import metpy
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
@@ -165,7 +166,7 @@ def staticSFCTempWindMSLPPlot():
     contourmap = tempPlot(False, ax=ax)
     validTime = windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
-    ax.add_feature(metpy.plots.USCOUNTIES.with_scale("5m"), edgecolor="gray")
+    ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
@@ -211,7 +212,11 @@ def tempPlot(standaloneFig, ax=None):
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
-    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree())
+    if modelName == "gfs":
+        shouldTransformFirst = False
+    else:
+        shouldTransformFirst = True
+    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -298,7 +303,11 @@ def mslpPlot(standaloneFig, ax=None):
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
-    contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree())
+    if modelName == "gfs":
+        shouldTransformFirst = False
+    else:
+        shouldTransformFirst = True
+    contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
