@@ -1,4 +1,5 @@
 modelData/
 output/
 firstPlotDT.txt
-plotcmds*.txt
+plotcmds.txt
+lockfile

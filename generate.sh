@@ -3,6 +3,12 @@
 # Created 15 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 rm plotcmds.txt
+if [ -f lockfile ]
+then
+  echo "lockfile found, exiting"
+  exit
+fi
+touch lockfile
 
 #models=("hrrr", "nam", "gfs", "namnest")
 ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py gfs
@@ -29,3 +35,4 @@ for procpid in ${procpids[*]}
 do
     wait $procpid
 done
+rm lockfile
