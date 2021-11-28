@@ -2,32 +2,30 @@
 # Product generation script for hdwx-modelplotter
 # Created 15 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
+rm plotcmds.txt
 
-rm -rf output/
-rm -rf inputGemFiles/
-rm -rf modelData/
-if [ ! -f gempakToCF.jar ]
-then
-    echo "Fetching unidata gempakToCF.jar..."
-    curl -L https://github.com/mjames-upc/edu.ucar.unidata.edex.plugin.gempak/blob/master/gempakToCF.jar?raw=true -o gempakToCF.jar
-fi
-mkdir inputGemFiles/
-echo "Transferring data from LDM..."
-filesToXfr=`find /coriolis-ldm/gempak/model/hrrr/ -mmin -5 -type f -exec ls {} +`
-for file in $filesToXfr
+#models=("hrrr", "nam", "gfs", "namnest")
+~/mambaforge/envs/HDWX/bin/python3 modelFetch.py gfs
+plotcmdStr=`cat plotcmds.txt`
+IFS=$'\n' plotcmdArr=($plotcmdStr)
+counter=0
+for plotcmd in "${plotcmdArr[@]}"
 do
-    cp $file ./inputGemFiles
+    time eval "$plotcmd" &
+    procpids[${counter}]=$!
+    ((counter=counter+1))
+    while [ ${#procpids[@]} == 12 ]
+    do
+        for procpid in ${procpids[*]}
+        do
+            if ! kill -0 $procpid 2>/dev/null
+            then 
+                procpids=(${procpids[@]/$procpid})
+            fi
+        done
+    done
 done
-echo "Converting files..."
-mkdir modelData/
-for inputFile in inputGemFiles/*
+for procpid in ${procpids[*]}
 do
-    outputFileName=`basename $inputFile .gem`
-    outputFileName="$outputFileName.nc"
-    java -jar gempakToCF.jar $inputFile modelData/$outputFileName 
+    wait $procpid
 done
-mkdir -p output/gisproducts/hrrr/sfcT/
-mkdir -p output/products/hrrr/sfcTwindMSLP/
-
-
-~/miniconda3/envs/HDWX/bin/python3 modelPlot.py

@@ -12,6 +12,15 @@ import subprocess
 import sys
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
+def writeToCmd(stringToWrite):
+    currentCmdFile = open(path.join(basePath, "plotcmds.txt"), "r")
+    currentStr = open(path.join(basePath, "plotcmds.txt"), "r").read()
+    currentCmdFile.close()
+    if stringToWrite not in currentStr:
+        with open(path.join(basePath, "plotcmds.txt"), "a") as cmdw:
+            cmdw.write(stringToWrite)
+            cmdw.close()
+
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
     reqVariableAddons = [
@@ -46,9 +55,21 @@ if __name__ == "__main__":
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
     else:
         raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
+    if path.exists(path.join(basePath, "firstPlotDT.txt")):
+        readFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "r")
+        firstPlotTime = dt.strptime(readFirstPlotFile.read(), "%Y%m%d%H%M")
+        readFirstPlotFile.close()
+    else:
+        firstPlotTime = dt.utcnow()
+        writeFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "w")
+        writeFirstPlotFile.write(firstPlotTime.strftime("%Y%m%d%H%M"))
+        writeFirstPlotFile.close()
     yesterRuns = [(yesterDate + timedelta(hours=target)).strftime("%Y%m%d%H%M") for target in initTimes]
     toRuns = [(toDate + timedelta(hours=target)).strftime("%Y%m%d%H%M") for target in initTimes if (toDate + timedelta(hours=target)) < dt.utcnow()]
     recentRuns = yesterRuns+toRuns
+    for recentRun in recentRuns.copy():
+        if int(recentRun) < int(firstPlotTime.strftime("%Y%m%d%H%M")):
+            recentRuns.remove(recentRun)
     if modelName == "hrrr":
         hoursToRequest = dict()
         for recentRun in recentRuns:
@@ -117,7 +138,7 @@ if __name__ == "__main__":
                                     if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
                                         shouldSkipDownload = False
                     if shouldSkipDownload:
-                            subprocess.Popen([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun, requestedForecastHour, fieldToGen])
+                            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
                     else:
                         urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
                         if "TMP" in reqVariableAddon:
@@ -132,4 +153,5 @@ if __name__ == "__main__":
                         if "GRIB" in modelData.text:
                             with open(modelDataPath, "wb") as f:
                                 f.write(modelData.content)
-                            subprocess.Popen([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun, requestedForecastHour, fieldToGen])
+                            with open(path.join(basePath, "plotcmds.txt"), "a") as cmd:
+                                writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
