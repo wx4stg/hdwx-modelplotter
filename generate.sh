@@ -19,6 +19,7 @@ do
     echo "Fetch $model" >> status.txt
     ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py $model
     if [ -f plotcmds.txt ]
+    then
         plotcmdStr=`cat plotcmds.txt`
         IFS=$'\n' plotcmdArr=($plotcmdStr)
         counter=0
@@ -43,7 +44,6 @@ do
         do
             wait $procpid
         done
-    then
     fi
 done
 
