@@ -18,30 +18,33 @@ do
     fi
     echo "Fetch $model" >> status.txt
     ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py $model
-    plotcmdStr=`cat plotcmds.txt`
-    IFS=$'\n' plotcmdArr=($plotcmdStr)
-    counter=0
-    echo "Plot $model" >> status.txt
-    for plotcmd in "${plotcmdArr[@]}"
-    do
-        eval "$plotcmd" &
-        procpids[${counter}]=$!
-        ((counter=counter+1))
-        while [ ${#procpids[@]} == 4 ]
+    if [ -f plotcmds.txt ]
+        plotcmdStr=`cat plotcmds.txt`
+        IFS=$'\n' plotcmdArr=($plotcmdStr)
+        counter=0
+        echo "Plot $model" >> status.txt
+        for plotcmd in "${plotcmdArr[@]}"
         do
-            for procpid in ${procpids[*]}
+            eval "$plotcmd" &
+            procpids[${counter}]=$!
+            ((counter=counter+1))
+            while [ ${#procpids[@]} == 4 ]
             do
-                if ! kill -0 $procpid 2>/dev/null
-                then 
-                    procpids=(${procpids[@]/$procpid})
-                fi
+                for procpid in ${procpids[*]}
+                do
+                    if ! kill -0 $procpid 2>/dev/null
+                    then 
+                        procpids=(${procpids[@]/$procpid})
+                    fi
+                done
             done
         done
-    done
-    for procpid in ${procpids[*]}
-    do
-        wait $procpid
-    done
+        for procpid in ${procpids[*]}
+        do
+            wait $procpid
+        done
+    then
+    fi
 done
 
 rm status.txt
