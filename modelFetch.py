@@ -13,9 +13,12 @@ import sys
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
 def writeToCmd(stringToWrite):
-    currentCmdFile = open(path.join(basePath, "plotcmds.txt"), "r")
-    currentStr = open(path.join(basePath, "plotcmds.txt"), "r").read()
-    currentCmdFile.close()
+    if path.exists(path.join(basePath, "plotcmds.txt")):
+        currentCmdFile = open(path.join(basePath, "plotcmds.txt"), "r")
+        currentStr = open(path.join(basePath, "plotcmds.txt"), "r").read()
+        currentCmdFile.close()
+    else:
+        currentStr = ""
     if stringToWrite not in currentStr:
         with open(path.join(basePath, "plotcmds.txt"), "a") as cmdw:
             cmdw.write(stringToWrite)
