@@ -2,37 +2,46 @@
 # Product generation script for hdwx-modelplotter
 # Created 15 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
-rm plotcmds.txt
-if [ -f lockfile ]
+if [ -f status.txt ]
 then
   echo "lockfile found, exiting"
   exit
 fi
-touch lockfile
+touch status.txt
 
-#models=("hrrr", "nam", "gfs", "namnest")
-~/mambaforge/envs/HDWX/bin/python3 modelFetch.py gfs
-plotcmdStr=`cat plotcmds.txt`
-IFS=$'\n' plotcmdArr=($plotcmdStr)
-counter=0
-for plotcmd in "${plotcmdArr[@]}"
+models=("hrrr" "nam" "gfs" "namnest")
+for model in "${models[@]}"
 do
-    time eval "$plotcmd" &
-    procpids[${counter}]=$!
-    ((counter=counter+1))
-    while [ ${#procpids[@]} == 12 ]
+    if [ -f plotcmds.txt ]
+    then
+        rm plotcmds.txt
+    fi
+    echo "Fetch $model" >> status.txt
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py $model
+    plotcmdStr=`cat plotcmds.txt`
+    IFS=$'\n' plotcmdArr=($plotcmdStr)
+    counter=0
+    echo "Plot $model" >> status.txt
+    for plotcmd in "${plotcmdArr[@]}"
     do
-        for procpid in ${procpids[*]}
+        eval "$plotcmd" &
+        procpids[${counter}]=$!
+        ((counter=counter+1))
+        while [ ${#procpids[@]} == 4 ]
         do
-            if ! kill -0 $procpid 2>/dev/null
-            then 
-                procpids=(${procpids[@]/$procpid})
-            fi
+            for procpid in ${procpids[*]}
+            do
+                if ! kill -0 $procpid 2>/dev/null
+                then 
+                    procpids=(${procpids[@]/$procpid})
+                fi
+            done
         done
     done
+    for procpid in ${procpids[*]}
+    do
+        wait $procpid
+    done
 done
-for procpid in ${procpids[*]}
-do
-    wait $procpid
-done
-rm lockfile
+
+rm status.txt

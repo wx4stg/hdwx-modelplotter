@@ -2,4 +2,4 @@ modelData/
 output/
 firstPlotDT.txt
 plotcmds.txt
-lockfile
+status.txt
