@@ -35,6 +35,7 @@ if __name__ == "__main__":
     toDate = dt(dt.utcnow().year, dt.utcnow().month, dt.utcnow().day, 0, 0, 0, 0)
     yesterDate = toDate - timedelta(days=1)
     modelName = sys.argv[1]
+    print("Beginning model fetch for model "+modelName)
     if modelName == "gfs":
         productTypeBase = 300
         initTimes = list(range(0, 19, 6))
@@ -95,27 +96,18 @@ if __name__ == "__main__":
         productIDToCheck = prodAddon + productTypeBase
         metadataPath = path.join(basePath, "output/metadata/products/"+str(productIDToCheck)+"/")
         if path.exists(metadataPath):
-            print("Found metadata for "+fieldToGen)
             for run in recentRuns:
-                print("Looking for json file for run "+run)
                 runFile = path.join(metadataPath, run+".json")
                 if path.exists(runFile):
-                    print("Found file, reading dict")
                     runJsonData = dict()
                     with open(runFile) as jsonRead:
                         runJsonData = json.load(jsonRead)
                     if runJsonData["availableFrameCount"] == runJsonData["totalFrameCount"]:
-                        print("Run is already complete, popping from main dict")
-                        print(productsToRequest[prodAddon].keys())
-                        print(run)
-                        print("\n")
                         productToTrim = productsToRequest[prodAddon].copy()
                         productToTrim.pop(run)
                         productsToRequest[prodAddon] = productToTrim
                     else:
                         frmsToDelete = [frame["fhour"] for frame in runJsonData["productFrames"]]
-                        print("Run is partially complete, removing frames: ")
-                        print(sorted(frmsToDelete))
                         oldArr = productsToRequest[prodAddon][run]
                         newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
                         productsToRequest[prodAddon][run] = newArr

@@ -330,7 +330,7 @@ if __name__ == "__main__":
         tempPlot(True)
     if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
         windPlot(True)
-    if fieldToPlot == "sp" and path.exists(sfcPressPath):
+    if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
         mslpPlot(True)
     if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
         staticSFCTempWindMSLPPlot()
