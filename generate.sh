@@ -2,6 +2,11 @@
 # Product generation script for hdwx-modelplotter
 # Created 15 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
+if [ ! -d output/ ]
+then
+    mkdir output/
+fi
+
 if [ -f status.txt ]
 then
   echo "lockfile found, exiting"
