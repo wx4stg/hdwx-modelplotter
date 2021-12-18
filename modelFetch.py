@@ -24,6 +24,20 @@ def writeToCmd(stringToWrite):
             cmdw.write(stringToWrite)
             cmdw.close()
 
+def writeToStatus(stringToWrite):
+    print(stringToWrite)
+    stringToWrite = stringToWrite+"\n"
+    if path.exists(path.join(basePath, "status.txt")):
+        currentStatusFile = open(path.join(basePath, "status.txt"), "r")
+        currentStr = open(path.join(basePath, "status.txt"), "r").read()
+        currentStatusFile.close()
+    else:
+        currentStr = ""
+    if stringToWrite not in currentStr:
+        with open(path.join(basePath, "status.txt"), "a") as statw:
+            statw.write(stringToWrite)
+            statw.close()
+
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
     reqVariableAddons = [
@@ -35,7 +49,7 @@ if __name__ == "__main__":
     toDate = dt(dt.utcnow().year, dt.utcnow().month, dt.utcnow().day, 0, 0, 0, 0)
     yesterDate = toDate - timedelta(days=1)
     modelName = sys.argv[1]
-    print("Beginning model fetch for model "+modelName)
+    writeToStatus("Beginning model fetch for model "+modelName)
     if modelName == "gfs":
         productTypeBase = 300
         initTimes = list(range(0, 19, 6))
@@ -121,7 +135,13 @@ if __name__ == "__main__":
             for reqVariableAddon in variableAddonsToReq:
                 initDate = initRun[:-4]
                 initTime = initRun[-4:-2]
+                lastSuccessfulfHour = -1
                 for requestedForecastHourI in requestedHoursForRun:
+                    print(lastSuccessfulfHour)
+                    print(requestedForecastHourI)
+                    if (requestedForecastHourI - 2) > lastSuccessfulfHour:
+                        print(str(requestedForecastHourI)+" is more than two fails after "+str(lastSuccessfulfHour)+"--breaking!")
+                        break
                     requestedForecastHour = str(f'{requestedForecastHourI:02}')
                     requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
                     shouldSkipDownload = False
@@ -133,6 +153,7 @@ if __name__ == "__main__":
                                     if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
                                         shouldSkipDownload = False
                     if shouldSkipDownload:
+                            lastSuccessfulfHour = requestedForecastHourI
                             writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
                     else:
                         urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
@@ -144,8 +165,11 @@ if __name__ == "__main__":
                             saveFileName = "sp.grib2"
                         modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initDate+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
                         Path(path.dirname(modelDataPath)).mkdir(parents=True, exist_ok=True)
+                        writeToStatus("Downloading "+initRun+"Z "+modelName+" f"+requestedForecastHour+" "+fieldToGen)
                         modelData = requests.get(urlToFetch)
                         if "GRIB" in modelData.text:
+                            print("download succeeded!")
+                            lastSuccessfulfHour = requestedForecastHourI
                             with open(modelDataPath, "wb") as f:
                                 f.write(modelData.content)
                             with open(path.join(basePath, "plotcmds.txt"), "a") as cmd:
