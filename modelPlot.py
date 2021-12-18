@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Forecast model plotting for next-gen HDWX
+# Surface temp, wind, mslp model postprocessing for next-gen HDWX
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
@@ -44,7 +44,22 @@ elif modelName == "hrrr":
 else:
     raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
 
-def writeJson(productID, gisInfo, validTime, fhour):
+def writeToStatus(stringToWrite):
+    print(stringToWrite)
+    stringToWrite = stringToWrite+"\n"
+    if path.exists(path.join(basePath, "status.txt")):
+        currentStatusFile = open(path.join(basePath, "status.txt"), "r")
+        currentStr = open(path.join(basePath, "status.txt"), "r").read()
+        currentStatusFile.close()
+    else:
+        currentStr = ""
+    if stringToWrite not in currentStr:
+        with open(path.join(basePath, "status.txt"), "a") as statw:
+            statw.write(stringToWrite)
+            statw.close()
+
+
+def writeJson(productID, gisInfo):
     if productID == 300:
         productDesc = "GFS Surface Temperature"
         dirname = "sfcT"
@@ -164,7 +179,7 @@ def staticSFCTempWindMSLPPlot():
     ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
     set_size(1920*px, 1080*px, ax=ax)
     contourmap = tempPlot(False, ax=ax)
-    validTime = windPlot(False, ax=ax)
+    windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
     ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
@@ -172,6 +187,7 @@ def staticSFCTempWindMSLPPlot():
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
     cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal")
     cbax.set_xlabel("Temperature (°F)")
+    validTime = initDateTime + timedelta(hours=fhour)
     tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.045,(ax.get_position().width/3),.05])
     tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
     tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
@@ -192,7 +208,7 @@ def staticSFCTempWindMSLPPlot():
     plt.close(fig)
     gisInfo = ["0,0", "0,0"]
     productId = productTypeBase + 3
-    writeJson(productId, gisInfo, validTime, fhour)
+    writeJson(productId, gisInfo)
 
 def tempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
@@ -223,9 +239,8 @@ def tempPlot(standaloneFig, ax=None):
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
         gisInfo = ["20,-130", "50,-60"]
-        writeJson(productTypeBase, gisInfo, validTime, fhour)
-    if not standaloneFig:
-        return contourmap
+        writeJson(productTypeBase, gisInfo)
+    return contourmap
 
 def windPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sfcwind.grib2")
@@ -265,9 +280,8 @@ def windPlot(standaloneFig, ax=None):
         plt.close(fig)
         gisInfo = ["20,-130", "50,-60"]
         productId = productTypeBase + 1
-        writeJson(productId, gisInfo, validTime, fhour)
-    if not standaloneFig:
-        return validTime
+        writeJson(productId, gisInfo)
+    return windbarbs
 
 def mslpPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sp.grib2")
@@ -319,9 +333,11 @@ def mslpPlot(standaloneFig, ax=None):
         validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
         gisInfo = ["20,-130", "50,-60"]
         productId = productTypeBase + 2
-        writeJson(productId, gisInfo, validTime, fhour)
+        writeJson(productId, gisInfo)
+    return contourmap
 
 if __name__ == "__main__":
+    writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
