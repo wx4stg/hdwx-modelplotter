@@ -13,9 +13,9 @@ def writeToStatus(stringToWrite):
         statw.close()
 
 if __name__ == "__main__":
-    writeToStatus("Cleaning up...")
     now = dt.now()
     basePath = path.dirname(path.abspath(__file__))
+    writeToStatus("Cleaning up...")
     modelDataPath = path.join(basePath, "modelData")
     outputPath = path.join(basePath, "output")
     for root, dirs, files in walk(modelDataPath):
