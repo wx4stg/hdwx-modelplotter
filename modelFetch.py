@@ -51,22 +51,26 @@ if __name__ == "__main__":
         initTimes = list(range(0, 19, 6))
         fHours = list(range(0, 120, 1)) + list(range(120, 385, 3))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t<MODEL_INIT_TIME>z.pgrb2.0p25.f<FHOUR_LONG><REQUESTED_VARIABLE>gfs.<MODEL_INIT_DATE>%2F<MODEL_INIT_TIME>%2Fatmos"
+        spreadHrs = 3
     elif modelName == "nam":
         productTypeBase = 500
         initTimes = list(range(0, 19, 6))
         fHours = list(range(0, 36, 1)) + list(range(36, 85, 3))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam.pl?file=nam.t<MODEL_INIT_TIME>z.awphys<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+        spreadHrs = 3
     elif modelName == "namnest":
         productTypeBase = 600
         initTimes = list(range(0, 19, 6))
         fHours = list(range(0, 61, 1))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl?file=nam.t<MODEL_INIT_TIME>z.conusnest.hiresf<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+        spreadHrs = 1
     elif modelName == "hrrr":
         productTypeBase = 800
         initTimes = list(range(0, 24, 1))
         fHoursLongRun = list(range(0, 49, 1))
         fHoursShortRun = list(range(0, 19, 1))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
+        spreadHrs = 1
     else:
         raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
     if path.exists(path.join(basePath, "firstPlotDT.txt")):
@@ -126,10 +130,10 @@ if __name__ == "__main__":
             for reqVariableAddon in variableAddonsToReq:
                 initDate = initRun[:-4]
                 initTime = initRun[-4:-2]
-                lastSuccessfulfHour = -1
+                lastSuccessfulfHour = requestedHoursForRun[0] - spreadHrs
                 for requestedForecastHourI in requestedHoursForRun:
-                    if (requestedForecastHourI - 2) > lastSuccessfulfHour:
-                        print(str(requestedForecastHourI)+" is more than two fails after "+str(lastSuccessfulfHour)+"--breaking!")
+                    if (requestedForecastHourI - 2*spreadHrs) > lastSuccessfulfHour:
+                        writeToStatus(str(requestedForecastHourI)+" is more than two fails after "+str(lastSuccessfulfHour)+"--breaking!")
                         break
                     requestedForecastHour = str(f'{requestedForecastHourI:02}')
                     requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
