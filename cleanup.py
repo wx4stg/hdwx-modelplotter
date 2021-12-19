@@ -24,6 +24,10 @@ if __name__ == "__main__":
             createTime = dt.fromtimestamp(path.getmtime(filepath))
             if createTime < now - timedelta(hours=1):
                 remove(filepath)
+                writeToStatus(filepath+" deleted.")
+            if filepath.endswith(".idx"):
+                remove(filepath)
+                writeToStatus(filepath+" deleted.")
     for root, dirs, files in walk(outputPath):
         for name in files:
             filepath = path.join(path.join(basePath, root), name)

@@ -342,12 +342,13 @@ if __name__ == "__main__":
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
     sfcPressPath = path.join(inputPath, "sp.grib2")
-    if fieldToPlot == "t2m" and path.exists(sfcTempPath):
-        tempPlot(True)
-    if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
-        windPlot(True)
-    if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
-        mslpPlot(True)
-    if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
-        staticSFCTempWindMSLPPlot()
-    [remove(path.join(inputPath, idxFile)) for idxFile in listdir(inputPath) if idxFile.endswith("idx")]
+    if path.exists(inputPath):
+        if fieldToPlot == "t2m" and path.exists(sfcTempPath):
+            tempPlot(True)
+        if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
+            windPlot(True)
+        if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
+            mslpPlot(True)
+        if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
+            staticSFCTempWindMSLPPlot()
+        [remove(path.join(inputPath, idxFile)) for idxFile in listdir(inputPath) if idxFile.endswith("idx")]
