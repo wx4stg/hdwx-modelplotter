@@ -20,12 +20,12 @@ from scipy import ndimage
 import json
 import warnings
 
-# SfcTWndMSLP.py <model> <initialization> <fhour>
+# modelPlot.py <model> <initialization> <fhour> <field to plot>
 modelName = sys.argv[1]
 initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
+fieldToPlot = sys.argv[4]
 basePath = path.dirname(path.abspath(__file__))
-axExtent = [-130, -60, 20, 50]
 if modelName == "gfs":
     productTypeBase = 300
     productFrameCount = 209
@@ -171,27 +171,22 @@ def set_size(w,h, ax=None):
     figh = float(h)/(t-b)
     ax.figure.set_size_inches(figw, figh)
 
-def staticSFCTempWindMSLPPlot(tempArr, wind, mslp):
-    temp = tempArr[0]
-    contourHandle = tempArr[1]
+def staticSFCTempWindMSLPPlot():
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
-    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
     set_size(1920*px, 1080*px, ax=ax)
-    tempImg = mpimage.imread(temp)
-    ax.imshow(tempImg, extent=axExtent, transform=ccrs.PlateCarree(), zorder=1)
-    ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray", zorder=2)
-    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5, zorder=3)
-    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5, zorder=3)
+    contourmap = tempPlot(False, ax=ax)
+    windPlot(False, ax=ax)
+    mslpPlot(False, ax=ax)
+    ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray")
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
-    fig.colorbar(contourHandle, cax=cbax, orientation="horizontal")
+    cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal")
     cbax.set_xlabel("Temperature (°F)")
-    wndImg = mpimage.imread(wind)
-    ax.imshow(wndImg, extent=axExtent, transform=ccrs.PlateCarree(), zorder=5)
-    mslpImg = mpimage.imread(mslp)
-    ax.imshow(mslpImg, extent=axExtent, transform=ccrs.PlateCarree(), zorder=6)
     validTime = initDateTime + timedelta(hours=fhour)
     tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.045,(ax.get_position().width/3),.05])
     tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
@@ -215,56 +210,59 @@ def staticSFCTempWindMSLPPlot(tempArr, wind, mslp):
     productId = productTypeBase + 3
     writeJson(productId, gisInfo)
 
-def tempPlot(pathToRead):
+def tempPlot(standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "t2m.grib2")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-        # modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", filter_by_keys={"typeOfLevel": "heightAboveGround", "topLevel": 2})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcT/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-    gisSavePath = path.join(gisSavePath, "f"+str(fhour)+".png")
-    tempData = modelDataArray["t"]
+    tempData = modelDataArray["t2m"]
     tempData = tempData.metpy.quantify()
     tempData = tempData.metpy.convert_units("degF")
-    fig = plt.figure()
-    px = 1/plt.rcParams["figure.dpi"]
-    fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
-    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    validTime = pdtimestamp(np.datetime64(tempData.valid_time.data)).to_pydatetime()
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
         shouldTransformFirst = False
     else:
         shouldTransformFirst = True
     contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
-    set_size(1920*px, 1080*px, ax=ax)
-    extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-    fig.savefig(gisSavePath, transparent=True, bbox_inches=extent)
-    plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    writeJson(productTypeBase, gisInfo)
-    return [gisSavePath, contourmap]
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = ["20,-130", "50,-60"]
+        writeJson(productTypeBase, gisInfo)
+    return contourmap
 
-def windPlot(pathToRead):
+def windPlot(standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "sfcwind.grib2")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-        # modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", filter_by_keys={"typeOfLevel": "heightAboveGround", "topLevel": 10})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcWnd/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-    gisSavePath = path.join(gisSavePath, "f"+str(fhour)+".png")
-    uwnd = modelDataArray["u10"]
-    uwnd = uwnd.metpy.quantify()
-    uwnd = uwnd.metpy.convert_units("kt")
-    vwnd = modelDataArray["v10"]
-    vwnd = vwnd.metpy.quantify()
-    vwnd = vwnd.metpy.convert_units("kt")
-    fig = plt.figure()
-    px = 1/plt.rcParams["figure.dpi"]
-    fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
-    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    uwind = modelDataArray["u10"]
+    uwind = uwind.metpy.quantify()
+    uwind = uwind.metpy.convert_units("kt")
+    vwind = modelDataArray["v10"]
+    vwind = vwind.metpy.quantify()
+    vwind = vwind.metpy.convert_units("kt")
+    validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
         spatialLimit = slice(None, None, 5)
         dataLimit = (slice(None, None, 5), slice(None, None, 5))
@@ -274,33 +272,33 @@ def windPlot(pathToRead):
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 40), slice(None, None, 40))
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
-    windbarbs = ax.barbs(uwnd.longitude.data[spatialLimit], uwnd.latitude.data[spatialLimit], uwnd.data[dataLimit], vwnd.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
-    set_size(1920*px, 1080*px, ax=ax)
-    extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-    fig.savefig(gisSavePath, transparent=True, bbox_inches=extent)
-    plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    productId = productTypeBase + 1
-    writeJson(productId, gisInfo)
-    return gisSavePath
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = ["20,-130", "50,-60"]
+        productId = productTypeBase + 1
+        writeJson(productId, gisInfo)
+    return windbarbs
 
-def mslpPlot(pathToRead):
+def mslpPlot(standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "sp.grib2")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
-        # modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", filter_by_keys={"typeOfLevel": "surface"})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-    gisSavePath = path.join(gisSavePath, "f"+str(fhour)+".png")
     barometricPressData = modelDataArray["sp"]
     barometricPressData = barometricPressData.metpy.quantify()
     orogData = modelDataArray["orog"]
     orogData = orogData.metpy.quantify()
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        # tempData = xr.open_dataset(pathToRead, engine="cfgrib", filter_by_keys={"typeOfLevel": "heightAboveGround", "topLevel": 2})
-    tempData = modelDataArray["t"]
+        tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
+    tempData = tempData["t2m"]
     tempData = tempData.metpy.quantify()
     # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
     # Therefore I implemented the same equation manually...
@@ -313,31 +311,43 @@ def mslpPlot(pathToRead):
         mslpData = ndimage.gaussian_filter(mslpData.data, 5)
     else:
         mslpData = ndimage.gaussian_filter(mslpData.data, 3)
-    fig = plt.figure()
-    px = 1/plt.rcParams["figure.dpi"]
-    fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.epsg(3857))
-    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
         shouldTransformFirst = False
     else:
         shouldTransformFirst = True
     contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1200, 2), inline=True, fontsize=15)
-    [label.set_rotation(0) for label in contourLabels]    
-    set_size(1920*px, 1080*px, ax=ax)
-    extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-    fig.savefig(gisSavePath, transparent=True, bbox_inches=extent)
-    plt.close(fig)
-    gisInfo = ["20,-130", "50,-60"]
-    productId = productTypeBase + 2
-    writeJson(productId, gisInfo)
-    return gisSavePath
+    [label.set_rotation(0) for label in contourLabels]
+    if standaloneFig:
+        validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
+        gisInfo = ["20,-130", "50,-60"]
+        productId = productTypeBase + 2
+        writeJson(productId, gisInfo)
+    return contourmap
 
 if __name__ == "__main__":
-    writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" sfcTWndMSLP"))
+    writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
-    pathToRead = path.join(inputPath, "sfcTWndMSLP.grib2")
-    if path.exists(pathToRead):
-        staticSFCTempWindMSLPPlot(tempPlot(pathToRead), windPlot(pathToRead), mslpPlot(pathToRead))
+    sfcTempPath = path.join(inputPath, "t2m.grib2")
+    sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
+    sfcPressPath = path.join(inputPath, "sp.grib2")
+    if fieldToPlot == "t2m" and path.exists(sfcTempPath):
+        tempPlot(True)
+    if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
+        windPlot(True)
+    if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
+        mslpPlot(True)
+    if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
+        staticSFCTempWindMSLPPlot()
     [remove(path.join(inputPath, idxFile)) for idxFile in listdir(inputPath) if idxFile.endswith("idx")]

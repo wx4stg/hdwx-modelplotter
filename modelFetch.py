@@ -33,7 +33,10 @@ def writeToStatus(stringToWrite):
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
     reqVariableAddons = [
-        "&lev_10_m_above_ground=on&lev_surface=on&var_HGT=on&var_PRES=on&var_TMP=on&var_UGRD=on&var_VGRD=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F"
+        "&lev_2_m_above_ground=on&var_TMP=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", #2mT
+        "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", # 10m Wnd
+        "&lev_surface=on&var_HGT=on&var_PRES=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", # MSLP
+        [0,1,2] #composite of 0, 1, 2
     ]
     toDate = dt(dt.utcnow().year, dt.utcnow().month, dt.utcnow().day, 0, 0, 0, 0)
     yesterDate = toDate - timedelta(days=1)
@@ -91,11 +94,16 @@ if __name__ == "__main__":
     else:
         hoursToRequest = {recentRun:fHours for recentRun in recentRuns}
     productsToRequest = [hoursToRequest for _ in range(0, len(reqVariableAddons))]
-    print(len(productsToRequest))
-    for varIdx in range(0, len(productsToRequest)):
-        if varIdx == 0:
-            fileName = "SfcTWndMSLP"
-            productIDToCheck = productTypeBase
+    for prodAddon in range(0, len(productsToRequest)):
+        if prodAddon == 0:
+            fieldToGen = "t2m"
+        elif prodAddon == 1:
+            fieldToGen = "sfcwind"
+        elif prodAddon == 2:
+            fieldToGen = "sp"
+        elif prodAddon == 3:
+            fieldToGen = "sfccomposite"
+        productIDToCheck = prodAddon + productTypeBase
         metadataPath = path.join(basePath, "output/metadata/products/"+str(productIDToCheck)+"/")
         if path.exists(metadataPath):
             for run in recentRuns:
@@ -105,21 +113,21 @@ if __name__ == "__main__":
                     with open(runFile) as jsonRead:
                         runJsonData = json.load(jsonRead)
                     if runJsonData["availableFrameCount"] == runJsonData["totalFrameCount"]:
-                        productToTrim = productsToRequest[varIdx].copy()
+                        productToTrim = productsToRequest[prodAddon].copy()
                         productToTrim.pop(run)
-                        productsToRequest[varIdx] = productToTrim
+                        productsToRequest[prodAddon] = productToTrim
                     else:
                         frmsToDelete = [frame["fhour"] for frame in runJsonData["productFrames"]]
-                        oldArr = productsToRequest[varIdx][run]
+                        oldArr = productsToRequest[prodAddon][run]
                         newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
-                        productsToRequest[varIdx][run] = newArr
-        for initRun in productsToRequest[varIdx]:
-            requestedHoursForRun = productsToRequest[varIdx][initRun]
+                        productsToRequest[prodAddon][run] = newArr
+        for initRun in productsToRequest[prodAddon]:
+            requestedHoursForRun = productsToRequest[prodAddon][initRun]
             variableAddonsToReq = list()
-            if type(reqVariableAddons[varIdx]) == str:
-                variableAddonsToReq.append(reqVariableAddons[varIdx])
+            if type(reqVariableAddons[prodAddon]) == str:
+                variableAddonsToReq.append(reqVariableAddons[prodAddon])
             else:
-                [variableAddonsToReq.append(reqVariableAddons[addonFromComposite]) for addonFromComposite in reqVariableAddons[varIdx]]
+                [variableAddonsToReq.append(reqVariableAddons[addonFromComposite]) for addonFromComposite in reqVariableAddons[prodAddon]]
             for reqVariableAddon in variableAddonsToReq:
                 initDate = initRun[:-4]
                 initTime = initRun[-4:-2]
@@ -131,21 +139,27 @@ if __name__ == "__main__":
                     requestedForecastHour = str(f'{requestedForecastHourI:02}')
                     requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
                     shouldSkipDownload = False
-                    if type(reqVariableAddons[varIdx]) == list:
+                    if type(reqVariableAddons[prodAddon]) == list:
                         shouldSkipDownload = True
-                        for compositeAddon in reqVariableAddons[varIdx]:
+                        for compositeAddon in reqVariableAddons[prodAddon]:
                             if len(productsToRequest) > compositeAddon:
                                 if initRun in productsToRequest[compositeAddon].keys():
                                     if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
                                         shouldSkipDownload = False
                     if shouldSkipDownload:
                             lastSuccessfulfHour = requestedForecastHourI
-                            writeToCmd(sys.executable+" "+path.join(basePath, fileName+".py")+" "+modelName+" "+initRun+" "+requestedForecastHour+"\n")
+                            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
                     else:
                         urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
-                        modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initDate+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+fileName+".grib2")
+                        if "TMP" in reqVariableAddon:
+                            saveFileName = "t2m.grib2"
+                        elif "UGRD" in reqVariableAddon:
+                            saveFileName = "sfcwind.grib2"
+                        elif "PRES" in reqVariableAddon:
+                            saveFileName = "sp.grib2"
+                        modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initDate+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
                         Path(path.dirname(modelDataPath)).mkdir(parents=True, exist_ok=True)
-                        writeToStatus("Downloading "+initRun+"Z "+modelName+" f"+requestedForecastHour)
+                        writeToStatus("Downloading "+initRun+"Z "+modelName+" f"+requestedForecastHour+" "+fieldToGen)
                         modelData = requests.get(urlToFetch)
                         if "GRIB" in modelData.text:
                             writeToStatus("download succeeded!")
@@ -153,4 +167,4 @@ if __name__ == "__main__":
                             with open(modelDataPath, "wb") as f:
                                 f.write(modelData.content)
                             with open(path.join(basePath, "plotcmds.txt"), "a") as cmd:
-                                writeToCmd(sys.executable+" "+path.join(basePath, fileName+".py")+" "+modelName+" "+initRun+" "+requestedForecastHour+"\n")
+                                writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
