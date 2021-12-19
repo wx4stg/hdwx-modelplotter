@@ -58,5 +58,11 @@ do
         done
     fi
 done
-
-rm status.txt
+if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
+then
+    ~/mambaforge/envs/HDWX/bin/python3 cleanup.py
+fi
+if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+then
+    ~/miniconda3/envs/HDWX/bin/python3 cleanup.py
+fi
