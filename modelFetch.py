@@ -26,16 +26,9 @@ def writeToCmd(stringToWrite):
 def writeToStatus(stringToWrite):
     print(stringToWrite)
     stringToWrite = stringToWrite+"\n"
-    if path.exists(path.join(basePath, "status.txt")):
-        currentStatusFile = open(path.join(basePath, "status.txt"), "r")
-        currentStr = open(path.join(basePath, "status.txt"), "r").read()
-        currentStatusFile.close()
-    else:
-        currentStr = ""
-    if stringToWrite not in currentStr:
-        with open(path.join(basePath, "status.txt"), "a") as statw:
-            statw.write(stringToWrite)
-            statw.close()
+    with open(path.join(basePath, "status.txt"), "a") as statw:
+        statw.write(stringToWrite)
+        statw.close()
 
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
@@ -155,7 +148,7 @@ if __name__ == "__main__":
                         writeToStatus("Downloading "+initRun+"Z "+modelName+" f"+requestedForecastHour)
                         modelData = requests.get(urlToFetch)
                         if "GRIB" in modelData.text:
-                            print("download succeeded!")
+                            writeToStatus("download succeeded!")
                             lastSuccessfulfHour = requestedForecastHourI
                             with open(modelDataPath, "wb") as f:
                                 f.write(modelData.content)
