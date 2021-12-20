@@ -128,15 +128,16 @@ def writeJson(productID, gisInfo):
     }
     productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
     Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
-    if path.exists(productDictJsonPath):
-        remove(productDictJsonPath)
     with open(productDictJsonPath, "w") as jsonWrite:
         json.dump(productDict, jsonWrite, indent=4)
     productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     if path.exists(productRunDictPath):
-        remove(productRunDictPath)
-    framesArray = list()
+        with open(productRunDictPath, "r") as jsonRead:
+            oldData = json.load(jsonRead)
+        framesArray = oldData["productFrames"]
+    else:
+        framesArray = list()
     if len(listdir(path.join(basePath, "output/"+productPath+pathExtension))) > 0:
         frameNames = listdir(path.join(basePath, "output/"+productPath+pathExtension))
         frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames]
@@ -148,7 +149,8 @@ def writeJson(productID, gisInfo):
                 "gisInfo" : gisInfo,
                 "valid" : int(fvalidTime.strftime("%Y%m%d%H%M"))
             }
-            framesArray.append(frmDict)
+            if frmDict not in framesArray:
+                framesArray.append(frmDict)
     productRunDict = {
         "publishTime" : publishTime.strftime("%Y%m%d%H%M"),
         "pathExtension" : pathExtension,
