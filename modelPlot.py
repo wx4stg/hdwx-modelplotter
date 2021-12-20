@@ -231,10 +231,12 @@ def tempPlot(standaloneFig, ax=None):
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
-        shouldTransformFirst = False
+        lonsToPlot = np.tile(np.array([tempData.longitude.data]), (tempData.data.shape[0], 1))
+        latsToPlot = np.tile(tempData.latitude.data, (tempData.data.shape[1], 1)).transpose()
     else:
-        shouldTransformFirst = True
-    contourmap = ax.contourf(tempData.longitude, tempData.latitude, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
+        lonsToPlot = tempData.longitude
+        latsToPlot = tempData.latitude
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=True)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -320,10 +322,12 @@ def mslpPlot(standaloneFig, ax=None):
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
     if modelName == "gfs":
-        shouldTransformFirst = False
+        lonsToPlot = np.tile(np.array([barometricPressData.longitude.data]), (barometricPressData.data.shape[0], 1))
+        latsToPlot = np.tile(barometricPressData.latitude.data, (barometricPressData.data.shape[1], 1)).transpose()
     else:
-        shouldTransformFirst = True
-    contourmap = ax.contour(barometricPressData.longitude, barometricPressData.latitude, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=shouldTransformFirst)
+        lonsToPlot = barometricPressData.longitude
+        latsToPlot = barometricPressData.latitude
+    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
