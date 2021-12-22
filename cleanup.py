@@ -33,7 +33,6 @@ if __name__ == "__main__":
             filepath = path.join(path.join(basePath, root), name)
             if filepath.endswith(".json"):
                 deleteAfter = timedelta(days=2)
-                writeToStatus(filepath+" deleted.")
             else:
                 deleteAfter = timedelta(minutes=20)
             createTime = dt.fromtimestamp(path.getmtime(filepath))
