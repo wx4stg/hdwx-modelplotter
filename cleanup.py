@@ -18,25 +18,27 @@ if __name__ == "__main__":
     writeToStatus("Cleaning up...")
     modelDataPath = path.join(basePath, "modelData")
     outputPath = path.join(basePath, "output")
-    for root, dirs, files in walk(modelDataPath):
-        for name in files:
-            filepath = path.join(path.join(basePath, root), name)
-            createTime = dt.fromtimestamp(path.getmtime(filepath))
-            if createTime < now - timedelta(hours=1):
-                remove(filepath)
-                writeToStatus(filepath+" deleted.")
-            if filepath.endswith(".idx"):
-                remove(filepath)
-                writeToStatus(filepath+" deleted.")
-    for root, dirs, files in walk(outputPath):
-        for name in files:
-            filepath = path.join(path.join(basePath, root), name)
-            if filepath.endswith(".json"):
-                deleteAfter = timedelta(days=2)
-            else:
-                deleteAfter = timedelta(minutes=20)
-            createTime = dt.fromtimestamp(path.getmtime(filepath))
-            if createTime < now - deleteAfter:
-                remove(filepath)
-                writeToStatus(filepath+" deleted.")
+    if path.exists(modelDataPath):
+        for root, dirs, files in walk(modelDataPath):
+            for name in files:
+                filepath = path.join(path.join(basePath, root), name)
+                createTime = dt.fromtimestamp(path.getmtime(filepath))
+                if createTime < now - timedelta(hours=1):
+                    remove(filepath)
+                    writeToStatus(filepath+" deleted.")
+                if filepath.endswith(".idx"):
+                    remove(filepath)
+                    writeToStatus(filepath+" deleted.")
+    if path.exists(outputPath):
+        for root, dirs, files in walk(outputPath):
+            for name in files:
+                filepath = path.join(path.join(basePath, root), name)
+                if filepath.endswith(".json"):
+                    deleteAfter = timedelta(days=2)
+                else:
+                    deleteAfter = timedelta(minutes=20)
+                createTime = dt.fromtimestamp(path.getmtime(filepath))
+                if createTime < now - deleteAfter:
+                    remove(filepath)
+                    writeToStatus(filepath+" deleted.")
     remove(path.join(basePath, "status.txt"))
