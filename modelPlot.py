@@ -121,7 +121,7 @@ def writeJson(productID, gisInfo):
         "productID" : productID,
         "productDescription" : productDesc,
         "productPath" : productPath,
-        "productReloadTime" : 300,
+        "productReloadTime" : 60,
         "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
         "isForecast" : True,
         "isGIS" : isGIS
@@ -161,6 +161,24 @@ def writeJson(productID, gisInfo):
     }
     with open(productRunDictPath, "w") as jsonWrite:
         json.dump(productRunDict, jsonWrite, indent=4)
+    productTypeID = int(str(productTypeBase)[0])
+    productTypeDictPath = path.join(basePath, "output/metadata/productTypes/"+str(productTypeID)+".json")
+    Path(path.dirname(productTypeDictPath)).mkdir(parents=True, exist_ok=True)
+    productsInType = list()
+    if path.exists(productTypeDictPath):
+        with open(productTypeDictPath, "r") as jsonRead:
+            oldProductTypeDict = json.load(jsonRead)
+        for productInOldDict in oldProductTypeDict["products"]:
+            if productInOldDict["productID"] != productID:
+                productsInType.append(productInOldDict)
+    productsInType.append(productDict)
+    productTypeDict = {
+        "productTypeID" : productTypeID,
+        "productTypeDescription" : modelName.upper(),
+        "products" : sorted(productsInType, key=lambda dict: dict["productID"])
+    }
+    with open(productTypeDictPath, "w") as jsonWrite:
+        json.dump(productTypeDict, jsonWrite, indent=4)
     
 
 def set_size(w,h, ax=None):
