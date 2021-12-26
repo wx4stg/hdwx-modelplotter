@@ -375,4 +375,3 @@ if __name__ == "__main__":
             mslpPlot(True)
         if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
             staticSFCTempWindMSLPPlot()
-        [remove(path.join(inputPath, idxFile)) for idxFile in listdir(inputPath) if idxFile.endswith("idx")]
