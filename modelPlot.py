@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path, remove, listdir
+from os import path, listdir
 from pathlib import Path
 import xarray as xr
 from metpy import constants
@@ -26,6 +26,7 @@ initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
 fieldToPlot = sys.argv[4]
 basePath = path.dirname(path.abspath(__file__))
+axExtent = [-130, -60, 20, 50]
 if modelName == "gfs":
     productTypeBase = 300
     productFrameCount = 209
@@ -248,7 +249,7 @@ def tempPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
-        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     if modelName == "gfs":
         lonsToPlot = np.tile(np.array([tempData.longitude.data]), (tempData.data.shape[0], 1))
         latsToPlot = np.tile(tempData.latitude.data, (tempData.data.shape[1], 1)).transpose()
@@ -261,7 +262,7 @@ def tempPlot(standaloneFig, ax=None):
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
-        gisInfo = ["20,-130", "50,-60"]
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         writeJson(productTypeBase, gisInfo)
     return contourmap
 
@@ -285,7 +286,7 @@ def windPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
-        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     if modelName == "gfs":
         spatialLimit = slice(None, None, 5)
         dataLimit = (slice(None, None, 5), slice(None, None, 5))
@@ -301,7 +302,7 @@ def windPlot(standaloneFig, ax=None):
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
-        gisInfo = ["20,-130", "50,-60"]
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 1
         writeJson(productId, gisInfo)
     return windbarbs
@@ -339,7 +340,7 @@ def mslpPlot(standaloneFig, ax=None):
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
-        ax.set_extent([-130, -60, 20, 50], crs=ccrs.PlateCarree())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     if modelName == "gfs":
         lonsToPlot = np.tile(np.array([barometricPressData.longitude.data]), (barometricPressData.data.shape[0], 1))
         latsToPlot = np.tile(barometricPressData.latitude.data, (barometricPressData.data.shape[1], 1)).transpose()
@@ -356,7 +357,7 @@ def mslpPlot(standaloneFig, ax=None):
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
         validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
-        gisInfo = ["20,-130", "50,-60"]
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 2
         writeJson(productId, gisInfo)
     return contourmap
