@@ -33,9 +33,9 @@ def writeToStatus(stringToWrite):
 if __name__ == "__main__":
     basePath = path.dirname(path.abspath(__file__))
     reqVariableAddons = [
-        "&lev_2_m_above_ground=on&var_TMP=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", #2mT
-        "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", # 10m Wnd
-        "&lev_surface=on&var_HGT=on&var_PRES=on&leftlon=0&rightlon=360&toplat=90&bottomlat=-90&dir=%2F", # MSLP
+        "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", #2mT
+        "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 10m Wnd
+        "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # MSLP
         [0,1,2] #composite of 0, 1, 2
     ]
     toDate = dt(dt.utcnow().year, dt.utcnow().month, dt.utcnow().day, 0, 0, 0, 0)
