@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path, listdir
+from os import path, listdir, remove
 from pathlib import Path
 import xarray as xr
 from metpy import constants
@@ -234,6 +234,7 @@ def staticSFCTempWindMSLPPlot():
 
 def tempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
@@ -268,6 +269,7 @@ def tempPlot(standaloneFig, ax=None):
 
 def windPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sfcwind.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
@@ -309,6 +311,7 @@ def windPlot(standaloneFig, ax=None):
 
 def mslpPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sp.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
@@ -319,6 +322,7 @@ def mslpPlot(standaloneFig, ax=None):
     barometricPressData = barometricPressData.metpy.quantify()
     orogData = modelDataArray["orog"]
     orogData = orogData.metpy.quantify()
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
         tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
