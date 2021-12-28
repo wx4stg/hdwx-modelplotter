@@ -19,6 +19,7 @@ from matplotlib import image as mpimage
 from scipy import ndimage
 import json
 import warnings
+from atomicwrites import atomic_write
 
 # modelPlot.py <model> <initialization> <fhour> <field to plot>
 modelName = sys.argv[1]
@@ -130,7 +131,7 @@ def writeJson(productID, gisInfo):
     }
     productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
     Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
-    with open(productDictJsonPath, "w") as jsonWrite:
+    with atomic_write(productDictJsonPath, "w") as jsonWrite:
         json.dump(productDict, jsonWrite, indent=4)
     productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
@@ -161,7 +162,7 @@ def writeJson(productID, gisInfo):
         "totalFrameCount" : productFrameCount,
         "productFrames" : sorted(framesArray, key=lambda dict: dict["fhour"]) 
     }
-    with open(productRunDictPath, "w") as jsonWrite:
+    with atomic_write(productRunDictPath, "w") as jsonWrite:
         json.dump(productRunDict, jsonWrite, indent=4)
     productTypeID = int(str(productTypeBase)[0])
     productTypeDictPath = path.join(basePath, "output/metadata/productTypes/"+str(productTypeID)+".json")
@@ -179,7 +180,7 @@ def writeJson(productID, gisInfo):
         "productTypeDescription" : modelName.upper(),
         "products" : sorted(productsInType, key=lambda dict: dict["productID"])
     }
-    with open(productTypeDictPath, "w") as jsonWrite:
+    with atomic_write(productTypeDictPath, "w") as jsonWrite:
         json.dump(productTypeDict, jsonWrite, indent=4)
     
 
