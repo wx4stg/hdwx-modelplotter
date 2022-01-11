@@ -22,7 +22,14 @@ do
         rm plotcmds.txt
     fi
     echo "Fetch $model" >> status.txt
-    $CONDA_PREFIX/bin/python3 modelFetch.py $model
+    if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
+    then
+        ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py $model
+    fi
+    if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+    then
+        ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py $model
+    fi
     if [ -f plotcmds.txt ]
     then
         plotcmdStr=`cat plotcmds.txt`
@@ -51,5 +58,11 @@ do
         done
     fi
 done
-
-$CONDA_PREFIX/bin/python3 cleanup.py
+if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
+then
+    ~/mambaforge/envs/HDWX/bin/python3 cleanup.py
+fi
+if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+then
+    ~/miniconda3/envs/HDWX/bin/python3 cleanup.py
+fi
