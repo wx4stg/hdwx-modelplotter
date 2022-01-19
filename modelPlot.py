@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path, listdir, remove
+from os import path, listdir, remove, chmod
 from pathlib import Path
 import xarray as xr
 from metpy import constants
@@ -133,6 +133,7 @@ def writeJson(productID, gisInfo):
     Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
     with atomic_write(productDictJsonPath, overwrite=True) as jsonWrite:
         json.dump(productDict, jsonWrite, indent=4)
+    chmod(productDictJsonPath, 0o644)
     productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
     Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
     if path.exists(productRunDictPath):
@@ -164,6 +165,7 @@ def writeJson(productID, gisInfo):
     }
     with atomic_write(productRunDictPath, overwrite=True) as jsonWrite:
         json.dump(productRunDict, jsonWrite, indent=4)
+    chmod(productRunDictPath, 0o644)
     productTypeID = int(str(productTypeBase)[0])
     productTypeDictPath = path.join(basePath, "output/metadata/productTypes/"+str(productTypeID)+".json")
     Path(path.dirname(productTypeDictPath)).mkdir(parents=True, exist_ok=True)
@@ -182,7 +184,7 @@ def writeJson(productID, gisInfo):
     }
     with atomic_write(productTypeDictPath, overwrite=True) as jsonWrite:
         json.dump(productTypeDict, jsonWrite, indent=4)
-    
+    chmod(productTypeDictPath, 0o644)
 
 def set_size(w,h, ax=None):
     if not ax: ax=plt.gca()
