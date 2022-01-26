@@ -16,6 +16,7 @@ import numpy as np
 from datetime import datetime as dt, timedelta
 from pandas import Timestamp as pdtimestamp
 from matplotlib import image as mpimage
+from matplotlib import colors
 from scipy import ndimage
 import json
 import warnings
@@ -206,11 +207,10 @@ def staticSFCTempWindMSLPPlot():
     contourmap = tempPlot(False, ax=ax)
     windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
-    ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray")
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
-    cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal")
+    cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", extend="both").set_ticks(np.sort(np.append(np.arange(-40, 120, 10), 32)))
     cbax.set_xlabel("Temperature (°F)")
     validTime = initDateTime + timedelta(hours=fhour)
     tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.045,(ax.get_position().width/3),.05])
@@ -223,7 +223,7 @@ def staticSFCTempWindMSLPPlot():
     lax.set_aspect(2821/11071)
     lax.axis("off")
     plt.setp(lax.spines.values(), visible=False)
-    atmoLogo = mpimage.imread("assets/atmoLogo.png")
+    atmoLogo = mpimage.imread(path.join(basePath, "assets", "atmoLogo.png"))
     lax.imshow(atmoLogo)
     fig.set_facecolor("white")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
@@ -260,7 +260,13 @@ def tempPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = tempData.longitude
         latsToPlot = tempData.latitude
-    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=np.arange(-20, 120, 5), cmap="nipy_spectral", vmin=-20, vmax=120, transform=ccrs.PlateCarree(), transform_first=True)
+    frozenColorMap = plt.cm.cool_r(np.linspace(0, 1, 25))
+    meltedColorMap = plt.cm.turbo(np.linspace(0.35, 1, 25))
+    all_colors = np.vstack((frozenColorMap, meltedColorMap))
+    temperatureColorMap = colors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
+    temperatureNorm = colors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
+    levelsToContour = np.sort(np.append(np.arange(-40, 120, 5), 32))
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -301,7 +307,7 @@ def windPlot(standaloneFig, ax=None):
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 40), slice(None, None, 40))
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
-    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5)
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -354,13 +360,13 @@ def mslpPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = barometricPressData.longitude
         latsToPlot = barometricPressData.latitude
-    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
-    contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1200, 2), inline=True, fontsize=15)
+    contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1040, 2), inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
         validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
