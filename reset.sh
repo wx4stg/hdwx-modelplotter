@@ -4,6 +4,9 @@
 
 rm -rf output/
 rm -rf radarData/
+rm downloaderlock-*
+rm plotter-is-reading
+rm plotterlock
 rm status.txt
 rm plotcmds.txt
 rm firstPlotDT.txt

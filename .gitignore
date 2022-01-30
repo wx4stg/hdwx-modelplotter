@@ -3,3 +3,6 @@ output/
 firstPlotDT.txt
 plotcmds.txt
 status.txt
+downloaderlock-*
+plotter-is-reading
+plotterlock

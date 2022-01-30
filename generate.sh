@@ -7,57 +7,56 @@ then
     mkdir output/
 fi
 
-if [ -f status.txt ]
+if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
 then
-  echo "lockfile found, exiting"
-  exit
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py ecmwf-hres &
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py namnest &
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py nam &
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py gfs &
+    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py hrrr &
 fi
-touch status.txt
-
-models=("hrrr" "nam" "gfs" "namnest")
-for model in "${models[@]}"
-do
-    if [ -f plotcmds.txt ]
-    then
-        rm plotcmds.txt
-    fi
-    echo "Fetch $model" >> status.txt
-    if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
-    then
-        ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py $model
-    fi
-    if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
-    then
-        ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py $model
-    fi
-    if [ -f plotcmds.txt ]
-    then
-        plotcmdStr=`cat plotcmds.txt`
-        IFS=$'\n' plotcmdArr=($plotcmdStr)
-        counter=0
-        echo "Plot $model" >> status.txt
-        for plotcmd in "${plotcmdArr[@]}"
+if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+then
+    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py ecmwf-hres &
+    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py namnest &
+    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py nam &
+    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py gfs &
+    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py hrrr &
+fi
+counter=0
+if [ ! -f plotterlock ]
+then
+    touch plotterlock
+    while [ -f plotcmds.txt ]
+    do
+        touch plotter-is-reading
+        read -r plotcmd < plotcmds.txt
+        tail -n +2 plotcmds.txt > plotcmds.tmp && rm plotcmds.txt && mv plotcmds.tmp plotcmds.txt
+        if ! grep -q '[^[:space:]]' "plotcmds.txt"
+        then
+            rm plotcmds.txt
+        fi
+        rm plotter-is-reading
+        eval "$plotcmd" &
+        procpids[${counter}]=$!
+        ((counter=counter+1))
+        while [ ${#procpids[@]} == 4 ]
         do
-            eval "$plotcmd" &
-            procpids[${counter}]=$!
-            ((counter=counter+1))
-            while [ ${#procpids[@]} == 4 ]
+            for procpid in ${procpids[*]}
             do
-                for procpid in ${procpids[*]}
-                do
-                    if ! kill -0 $procpid 2>/dev/null
-                    then 
-                        procpids=(${procpids[@]/$procpid})
-                    fi
-                done
+                if ! kill -0 $procpid 2>/dev/null
+                then 
+                    procpids=(${procpids[@]/$procpid})
+                fi
             done
         done
-        for procpid in ${procpids[*]}
-        do
-            wait $procpid
-        done
-    fi
-done
+    done
+    for procpid in ${procpids[*]}
+    do
+        wait $procpid
+    done
+    rm plotterlock
+fi
 if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
 then
     ~/mambaforge/envs/HDWX/bin/python3 cleanup.py

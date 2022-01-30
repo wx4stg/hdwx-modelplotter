@@ -4,24 +4,36 @@
 
 import sys
 from datetime import datetime as dt, timedelta
-from os import path, listdir
+from os import path, remove
 import json
 import requests
 from pathlib import Path
 import sys
+from ecmwf.opendata import Client
+from time import sleep
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
+modelName = sys.argv[1]
+euroVarList = {
+    "t2m.grib2" : ["2t"],
+    "sfcwind.grib2" : ["10u", "10v"],
+    "sp.grib2" : ["msl"],
+    "sfccomposite" : list()
+}
+ncepVarList = {
+    "t2m.grib2" : "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 2m Temperature
+    "sfcwind.grib2" : "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 10m u and v
+    "sp.grib2" : "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # surface pressure and orography
+    "sfccomposite" : ""
+}
+basePath = path.dirname(path.abspath(__file__))
+client = Client(source="ecmwf")
 def writeToCmd(stringToWrite):
-    if path.exists(path.join(basePath, "plotcmds.txt")):
-        currentCmdFile = open(path.join(basePath, "plotcmds.txt"), "r")
-        currentStr = open(path.join(basePath, "plotcmds.txt"), "r").read()
-        currentCmdFile.close()
-    else:
-        currentStr = ""
-    if stringToWrite not in currentStr:
-        with open(path.join(basePath, "plotcmds.txt"), "a") as cmdw:
-            cmdw.write(stringToWrite)
-            cmdw.close()
+    while path.exists(path.join(basePath, "plotter-is-reading")):
+        sleep(.01)
+    with open(path.join(basePath, "plotcmds.txt"), "a") as cmdw:
+        cmdw.write(stringToWrite)
+        cmdw.close()
 
 def writeToStatus(stringToWrite):
     print(stringToWrite)
@@ -30,45 +42,67 @@ def writeToStatus(stringToWrite):
         statw.write(stringToWrite)
         statw.close()
 
+def fetchEuroModel(initRun, fHour, outputDir):
+    if modelName == "ecmwf-hres":
+        if initRun.hour in [0, 12]:
+            requestedType = "fc"
+            requestedStream = "oper"
+        else:
+            requestedType = "fc"
+            requestedStream = "scda"
+    elif modelName == "ecmwf-ens":
+        requestedStream = "enfo"
+    for filename, reqVariables in euroVarList.items():
+        resDT = ""
+        if len(reqVariables) > 0:
+            try:
+                res = client.retrieve(
+                    type=requestedType,
+                    stream=requestedStream,
+                    date=initRun,
+                    step=fHour,
+                    param=reqVariables,
+                    target=path.join(outputDir, filename)
+                )
+                resDT = res.datetime
+            except Exception as e:
+                print(str(e))
+                return False
+            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+        else:
+            resDT = initRun
+            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+    if resDT == initRun:
+        return True
+
+def fetchNcepModel(initRun, fHour, outputDir, templateStr):
+    requestedForecastHour = str(f'{fHour:02}')
+    requestedForecastHourLong = str(f'{fHour:03}')
+    for filename, reqVariable in ncepVarList.items():
+        if "grib2" in filename:
+            urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", reqVariable).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
+            modelData = requests.get(urlToFetch)
+            if "GRIB" in modelData.text:
+                with open(path.join(outputDir, filename), "wb") as f:
+                    f.write(modelData.content)
+                writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+            else:
+                return False
+        else:
+            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+    return True
+    
+
+
+
 if __name__ == "__main__":
-    basePath = path.dirname(path.abspath(__file__))
-    reqVariableAddons = [
-        "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", #2mT
-        "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 10m Wnd
-        "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # MSLP
-        [0,1,2] #composite of 0, 1, 2
-    ]
-    toDate = dt(dt.utcnow().year, dt.utcnow().month, dt.utcnow().day, 0, 0, 0, 0)
-    yesterDate = toDate - timedelta(days=1)
-    modelName = sys.argv[1]
-    writeToStatus("Beginning model fetch for model "+modelName)
-    if modelName == "gfs":
-        productTypeBase = 300
-        initTimes = list(range(0, 19, 6))
-        fHours = list(range(0, 120, 1)) + list(range(120, 385, 3))
-        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t<MODEL_INIT_TIME>z.pgrb2.0p25.f<FHOUR_LONG><REQUESTED_VARIABLE>gfs.<MODEL_INIT_DATE>%2F<MODEL_INIT_TIME>%2Fatmos"
-        spreadHrs = 3
-    elif modelName == "nam":
-        productTypeBase = 500
-        initTimes = list(range(0, 19, 6))
-        fHours = list(range(0, 36, 1)) + list(range(36, 85, 3))
-        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam.pl?file=nam.t<MODEL_INIT_TIME>z.awphys<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
-        spreadHrs = 3
-    elif modelName == "namnest":
-        productTypeBase = 600
-        initTimes = list(range(0, 19, 6))
-        fHours = list(range(0, 61, 1))
-        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl?file=nam.t<MODEL_INIT_TIME>z.conusnest.hiresf<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
-        spreadHrs = 1
-    elif modelName == "hrrr":
-        productTypeBase = 800
-        initTimes = list(range(0, 24, 1))
-        fHoursLongRun = list(range(0, 49, 1))
-        fHoursShortRun = list(range(0, 19, 1))
-        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
-        spreadHrs = 1
+    if path.exists(path.join(basePath, "downloaderlock-"+modelName+".txt")):
+        writeToStatus("Downloader is locked for model "+modelName+", goodbye")
+        exit()
     else:
-        raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
+        with open(path.join(basePath, "downloaderlock-"+modelName+".txt"), "a") as lockWrite:
+            lockWrite.write(dt.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+    writeToStatus("Statring download routine for model "+modelName)
     if path.exists(path.join(basePath, "firstPlotDT.txt")):
         readFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "r")
         firstPlotTime = dt.strptime(readFirstPlotFile.read(), "%Y%m%d%H%M")
@@ -78,100 +112,88 @@ if __name__ == "__main__":
         writeFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "w")
         writeFirstPlotFile.write(firstPlotTime.strftime("%Y%m%d%H%M"))
         writeFirstPlotFile.close()
-    yesterRuns = [(yesterDate + timedelta(hours=target)).strftime("%Y%m%d%H%M") for target in initTimes]
-    toRuns = [(toDate + timedelta(hours=target)).strftime("%Y%m%d%H%M") for target in initTimes if (toDate + timedelta(hours=target)) < dt.utcnow()]
-    recentRuns = yesterRuns+toRuns
-    for recentRun in recentRuns.copy():
-        if int(recentRun) < int(firstPlotTime.strftime("%Y%m%d%H%M")):
-            recentRuns.remove(recentRun)
-    if modelName == "hrrr":
-        hoursToRequest = dict()
-        for recentRun in recentRuns:
-            if int(recentRun[-4:-2]) in list(range(0, 19, 6)):
-                hoursToRequest[recentRun] = fHoursLongRun
+    if modelName == "gfs":
+        productTypeBase = 300
+        longRuns = list(range(0, 19, 6))
+        shortRuns = list()
+        fHoursLongRun = list(range(0, 120, 1)) + list(range(120, 385, 3))
+        fHoursShortRun = list()
+        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t<MODEL_INIT_TIME>z.pgrb2.0p25.f<FHOUR_LONG><REQUESTED_VARIABLE>gfs.<MODEL_INIT_DATE>%2F<MODEL_INIT_TIME>%2Fatmos"
+    elif modelName == "nam":
+        productTypeBase = 500
+        longRuns = list(range(0, 19, 6))
+        shortRuns = list()
+        fHoursLongRun = list(range(0, 36, 1)) + list(range(36, 85, 3))
+        fHoursShortRun = list()
+        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam.pl?file=nam.t<MODEL_INIT_TIME>z.awphys<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+    elif modelName == "namnest":
+        productTypeBase = 600
+        longRuns = list(range(0, 19, 6))
+        shortRuns = list()
+        fHoursLongRun = list(range(0, 61, 1))
+        fHoursShortRun = list()
+        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl?file=nam.t<MODEL_INIT_TIME>z.conusnest.hiresf<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+    elif modelName == "hrrr":
+        productTypeBase = 800
+        longRuns = list(range(0, 19, 6))
+        shortRuns = [hour for hour in list(range(0, 24, 1)) if hour not in longRuns]
+        fHoursLongRun = list(range(0, 49, 1))
+        fHoursShortRun = list(range(0, 19, 1))
+        templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
+    elif modelName == "ecmwf-hres":
+        productTypeBase = 1000
+        longRuns = list(range(0, 13, 12))
+        shortRuns = [hour for hour in list(range(0, 19, 6)) if hour not in longRuns]
+        fHoursLongRun = list(range(0, 144, 3)) + list(range(144, 241, 6))
+        fHoursShortRun = list(range(0, 91, 3))
+    today = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday = today - timedelta(days=1)
+    runsAndFHours = dict()
+    for dateInt in [int(yesterday.strftime("%Y%m%d0000")), int(today.strftime("%Y%m%d0000"))]:
+        for longRun in longRuns:
+            dtKey = dateInt + (longRun * 100)
+            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+            if dtKeyDt < dt.utcnow() and dtKeyDt > firstPlotTime:
+                runsAndFHours[dtKey] = fHoursLongRun
+        for shortRun in shortRuns:
+            dtKey = dateInt + (shortRun * 100)
+            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+            if dtKeyDt < dt.utcnow() and dtKeyDt > firstPlotTime:
+                runsAndFHours[dtKey] = fHoursShortRun
+    for run in runsAndFHours.keys():
+        runfile = path.join(basePath, "output", "metadata", "products", str(productTypeBase), str(run)+".json")
+        if path.exists(runfile):
+            with open(runfile) as jsonRead:
+                runMetadata = json.load(jsonRead)
+            if runMetadata["availableFrameCount"] == runMetadata["totalFrameCount"]:
+                runsAndFHours.pop(run)
             else:
-                hoursToRequest[recentRun] = fHoursShortRun
+                frmsToDelete = [frame["fhour"] for frame in runMetadata["productFrames"]]
+                oldArr = runsAndFHours[run]
+                newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
+                runsAndFHours[run] = newArr
+    if path.exists(path.join(basePath, "plotcmds.txt")):
+        with open(path.join(basePath, "plotcmds.txt"), "r") as pltcmdfile:
+            queuedPlotCommands = pltcmdfile.read()
     else:
-        hoursToRequest = {recentRun:fHours for recentRun in recentRuns}
-    productsToRequest = [hoursToRequest for _ in range(0, len(reqVariableAddons))]
-    for prodAddon in range(0, len(productsToRequest)):
-        if prodAddon == 0:
-            fieldToGen = "t2m"
-        elif prodAddon == 1:
-            fieldToGen = "sfcwind"
-        elif prodAddon == 2:
-            fieldToGen = "sp"
-        elif prodAddon == 3:
-            fieldToGen = "sfccomposite"
-        productIDToCheck = prodAddon + productTypeBase
-        metadataPath = path.join(basePath, "output/metadata/products/"+str(productIDToCheck)+"/")
-        if path.exists(metadataPath):
-            for run in recentRuns:
-                runFile = path.join(metadataPath, run+".json")
-                if path.exists(runFile):
-                    runJsonData = dict()
-                    with open(runFile) as jsonRead:
-                        runJsonData = json.load(jsonRead)
-                    if runJsonData["availableFrameCount"] == runJsonData["totalFrameCount"]:
-                        productToTrim = productsToRequest[prodAddon].copy()
-                        productToTrim.pop(run)
-                        productsToRequest[prodAddon] = productToTrim
-                    else:
-                        frmsToDelete = [frame["fhour"] for frame in runJsonData["productFrames"]]
-                        oldArr = productsToRequest[prodAddon][run]
-                        newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
-                        productsToRequest[prodAddon][run] = newArr
-        for initRun in productsToRequest[prodAddon]:
-            requestedHoursForRun = productsToRequest[prodAddon][initRun]
-            variableAddonsToReq = list()
-            if type(reqVariableAddons[prodAddon]) == str:
-                variableAddonsToReq.append(reqVariableAddons[prodAddon])
-            else:
-                [variableAddonsToReq.append(reqVariableAddons[addonFromComposite]) for addonFromComposite in reqVariableAddons[prodAddon]]
-            for reqVariableAddon in variableAddonsToReq:
-                if len(requestedHoursForRun) > 0:
-                    initDate = initRun[:-4]
-                    initTime = initRun[-4:-2]
-                    lastSuccessfulfHour = requestedHoursForRun[0] - spreadHrs
-                    successfullyFetchedHours = list()
-                    for requestedForecastHourI in requestedHoursForRun:
-                        if (requestedForecastHourI - 2*spreadHrs) > lastSuccessfulfHour:
-                            writeToStatus(str(requestedForecastHourI)+" is more than threshold fails after "+str(lastSuccessfulfHour)+"--breaking!")
-                            if prodAddon == 0:
-                                for prodAddonToUpdate in range(0, len(productsToRequest)):
-                                    productsToRequest[prodAddonToUpdate][initRun] = successfullyFetchedHours
-                            break
-                        requestedForecastHour = str(f'{requestedForecastHourI:02}')
-                        requestedForecastHourLong = str(f'{requestedForecastHourI:03}')
-                        shouldSkipDownload = False
-                        if type(reqVariableAddons[prodAddon]) == list:
-                            shouldSkipDownload = True
-                            for compositeAddon in reqVariableAddons[prodAddon]:
-                                if len(productsToRequest) > compositeAddon:
-                                    if initRun in productsToRequest[compositeAddon].keys():
-                                        if requestedForecastHourI not in productsToRequest[compositeAddon][initRun]:
-                                            shouldSkipDownload = False
-                        if shouldSkipDownload:
-                                lastSuccessfulfHour = requestedForecastHourI
-                                successfullyFetchedHours.append(requestedForecastHourI)
-                                writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
-                        else:
-                            urlToFetch = templateString.replace("<REQUESTED_VARIABLE>", reqVariableAddon).replace("<MODEL_INIT_TIME>", initTime).replace("<MODEL_INIT_DATE>", initDate).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
-                            if "TMP" in reqVariableAddon:
-                                saveFileName = "t2m.grib2"
-                            elif "UGRD" in reqVariableAddon:
-                                saveFileName = "sfcwind.grib2"
-                            elif "PRES" in reqVariableAddon:
-                                saveFileName = "sp.grib2"
-                            modelDataPath = path.join(basePath, "modelData/"+modelName+"/"+initDate+"/"+initTime+"/"+str(requestedForecastHourI)+"/"+saveFileName)
-                            Path(path.dirname(modelDataPath)).mkdir(parents=True, exist_ok=True)
-                            writeToStatus("Downloading "+initRun+"Z "+modelName+" f"+requestedForecastHour+" "+fieldToGen)
-                            modelData = requests.get(urlToFetch)
-                            if "GRIB" in modelData.text:
-                                writeToStatus("download succeeded!")
-                                lastSuccessfulfHour = requestedForecastHourI
-                                successfullyFetchedHours.append(requestedForecastHourI)
-                                with open(modelDataPath, "wb") as f:
-                                    f.write(modelData.content)
-                                with open(path.join(basePath, "plotcmds.txt"), "a") as cmd:
-                                    writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun+" "+requestedForecastHour+" "+fieldToGen+"\n")
+        queuedPlotCommands = ""
+    for runInt, hours in runsAndFHours.items():
+        failedFHoursThisRun = list()
+        runDT = dt.strptime(str(runInt), "%Y%m%d%H%M")
+        for fhour in hours:
+            plotCmdString = sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+str(runInt)+" "+str(fhour)
+            frameFetchDidSucceed = True
+            if plotCmdString not in queuedPlotCommands:
+                frameFetchDidSucceed = False
+                writeToStatus("Fetching "+modelName+" init at "+runDT.strftime("%Y-%m-%d %H:%M")+" forecast hour "+str(fhour))
+                outputDir = path.join(basePath, "modelData", modelName, runDT.strftime("%Y%m%d"), runDT.strftime("%H"), str(fhour))
+                Path(outputDir).mkdir(parents=True, exist_ok=True)
+                if "ecmwf" in modelName:
+                    frameFetchDidSucceed = fetchEuroModel(runDT, fhour, outputDir)
+                else:
+                    frameFetchDidSucceed = fetchNcepModel(runDT, fhour, outputDir, templateString)
+            if frameFetchDidSucceed == False:
+                failedFHoursThisRun.append(fhour)
+            if len(failedFHoursThisRun) > 3:
+                break
+    remove(path.join(basePath, "downloaderlock-"+modelName+".txt"))

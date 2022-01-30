@@ -23,7 +23,7 @@ if __name__ == "__main__":
             for name in files:
                 filepath = path.join(path.join(basePath, root), name)
                 createTime = dt.fromtimestamp(path.getmtime(filepath))
-                if createTime < now - timedelta(hours=1):
+                if createTime < now - timedelta(hours=3):
                     remove(filepath)
                     writeToStatus(filepath+" deleted.")
                 if filepath.endswith(".idx"):
@@ -34,7 +34,7 @@ if __name__ == "__main__":
             for name in files:
                 filepath = path.join(path.join(basePath, root), name)
                 if filepath.endswith(".json"):
-                    deleteAfter = timedelta(days=2)
+                    deleteAfter = timedelta(days=3)
                 else:
                     deleteAfter = timedelta(minutes=20)
                 createTime = dt.fromtimestamp(path.getmtime(filepath))
