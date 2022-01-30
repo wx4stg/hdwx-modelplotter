@@ -44,8 +44,11 @@ elif modelName == "hrrr":
         productFrameCount = 49
     else:
         productFrameCount = 19
+elif modelName == "ecmwf-hres":
+    productTypeBase = 1000
+    productFrameCount = 61
 else:
-    raise Exception("<model> must be 'gfs', 'nam', 'namnest', or 'hrrr'")
+    raise Exception("<model> must be 'gfs', 'nam', 'namnest', 'hrrr', or 'ecmwf-hres'")
 
 def writeToStatus(stringToWrite):
     print(stringToWrite)
@@ -110,6 +113,18 @@ def writeJson(productID, gisInfo):
         dirname = "sfcMSLP"
     elif productID == 803:
         productDesc = "HRRR Surface Temperature, Winds, MSLP"
+        dirname = "sfcTWndMSLP"
+    elif productID == 1000:
+        productDesc = "ECMWF-HRES Surface Temperature"
+        dirname = "sfcT"
+    elif productID == 1001:
+        productDesc = "ECMWF-HRES Surface Winds"
+        dirname = "sfcWnd"
+    elif productID == 1002:
+        productDesc = "ECMWF-HRES Surface MSLP"
+        dirname = "sfcMSLP"
+    elif productID == 1003:
+        productDesc = "ECMWF-HRES Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
     if gisInfo == ["0,0", "0,0"]:
         isGIS = False
@@ -203,7 +218,6 @@ def staticSFCTempWindMSLPPlot():
     fig.set_size_inches(1920*px, 1080*px)
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
-    set_size(1920*px, 1080*px, ax=ax)
     contourmap = tempPlot(False, ax=ax)
     windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
@@ -213,6 +227,7 @@ def staticSFCTempWindMSLPPlot():
     cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", extend="both").set_ticks(np.sort(np.append(np.arange(-40, 120, 10), 32)))
     cbax.set_xlabel("Temperature (°F)")
     validTime = initDateTime + timedelta(hours=fhour)
+    fig.set_size_inches(1920*px, 1080*px)
     tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.045,(ax.get_position().width/3),.05])
     tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
     tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
@@ -225,6 +240,7 @@ def staticSFCTempWindMSLPPlot():
     plt.setp(lax.spines.values(), visible=False)
     atmoLogo = mpimage.imread(path.join(basePath, "assets", "atmoLogo.png"))
     lax.imshow(atmoLogo)
+    ax.set_position([ax.get_position().x0, .12, ax.get_position().width, ax.get_position().height])
     fig.set_facecolor("white")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTWndMSLP/"+runPathExt)
@@ -247,14 +263,13 @@ def tempPlot(standaloneFig, ax=None):
     tempData = modelDataArray["t2m"]
     tempData = tempData.metpy.quantify()
     tempData = tempData.metpy.convert_units("degF")
-    validTime = pdtimestamp(np.datetime64(tempData.valid_time.data)).to_pydatetime()
     if standaloneFig:
         fig = plt.figure()
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent(axExtent, crs=ccrs.PlateCarree())
-    if modelName == "gfs":
+    if modelName == "gfs" or modelName == "ecmwf-hres":
         lonsToPlot = np.tile(np.array([tempData.longitude.data]), (tempData.data.shape[0], 1))
         latsToPlot = np.tile(tempData.latitude.data, (tempData.data.shape[1], 1)).transpose()
     else:
@@ -267,6 +282,7 @@ def tempPlot(standaloneFig, ax=None):
     temperatureNorm = colors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
     levelsToContour = np.sort(np.append(np.arange(-40, 120, 5), 32))
     contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
+    ax.contour(lonsToPlot, latsToPlot, tempData, levels=[32], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -291,14 +307,13 @@ def windPlot(standaloneFig, ax=None):
     vwind = modelDataArray["v10"]
     vwind = vwind.metpy.quantify()
     vwind = vwind.metpy.convert_units("kt")
-    validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
     if standaloneFig:
         fig = plt.figure()
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent(axExtent, crs=ccrs.PlateCarree())
-    if modelName == "gfs":
+    if modelName == "gfs" or modelName == "ecmwf-hres":
         spatialLimit = slice(None, None, 5)
         dataLimit = (slice(None, None, 5), slice(None, None, 5))
     elif modelName == "nam":
@@ -327,39 +342,44 @@ def mslpPlot(standaloneFig, ax=None):
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/"), runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-    barometricPressData = modelDataArray["sp"]
-    barometricPressData = barometricPressData.metpy.quantify()
-    orogData = modelDataArray["orog"]
-    orogData = orogData.metpy.quantify()
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore")
-        tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
-    tempData = tempData["t2m"]
-    tempData = tempData.metpy.quantify()
-    # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
-    # Therefore I implemented the same equation manually...
-    mslpData = barometricPressData * np.exp(orogData*constants.earth_gravity/(constants.dry_air_gas_constant*tempData))
-    mslpData = mslpData.metpy.quantify()
-    mslpData = mslpData.metpy.convert_units("hPa")
+    if modelName == "ecmwf-hres":
+        mslpData = modelDataArray["msl"]
+        mslpData = mslpData.metpy.quantify()
+        mslpData = mslpData.metpy.convert_units("hPa")
+    else:
+        barometricPressData = modelDataArray["sp"]
+        barometricPressData = barometricPressData.metpy.quantify()
+        orogData = modelDataArray["orog"]
+        orogData = orogData.metpy.quantify()
+        [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
+        tempData = tempData["t2m"]
+        tempData = tempData.metpy.quantify()
+        # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
+        # Therefore I implemented the same equation manually...
+        mslpData = barometricPressData * np.exp(orogData*constants.earth_gravity/(constants.dry_air_gas_constant*tempData))
+        mslpData = mslpData.metpy.quantify()
+        mslpData = mslpData.metpy.convert_units("hPa")
     # Unidata says smoothing MSLP "a little" is... well they didn't comment on why, they just did it, and it makes the rocky mtns less noisy...
     # https://unidata.github.io/python-gallery/examples/MSLP_temp_winds.html
     if modelName == "namnest" or modelName == "hrrr":
-        mslpData = ndimage.gaussian_filter(mslpData.data, 5)
+        mslpData.data = ndimage.gaussian_filter(mslpData.data, 5)
     else:
-        mslpData = ndimage.gaussian_filter(mslpData.data, 3)
+        mslpData.data = ndimage.gaussian_filter(mslpData.data, 3)
     if standaloneFig:
         fig = plt.figure()
         px = 1/plt.rcParams["figure.dpi"]
         fig.set_size_inches(1920*px, 1080*px)
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent(axExtent, crs=ccrs.PlateCarree())
-    if modelName == "gfs":
-        lonsToPlot = np.tile(np.array([barometricPressData.longitude.data]), (barometricPressData.data.shape[0], 1))
-        latsToPlot = np.tile(barometricPressData.latitude.data, (barometricPressData.data.shape[1], 1)).transpose()
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([mslpData.longitude.data]), (mslpData.data.shape[0], 1))
+        latsToPlot = np.tile(mslpData.latitude.data, (mslpData.data.shape[1], 1)).transpose()
     else:
-        lonsToPlot = barometricPressData.longitude
-        latsToPlot = barometricPressData.latitude
+        lonsToPlot = mslpData.longitude
+        latsToPlot = mslpData.latitude
     contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
@@ -369,7 +389,6 @@ def mslpPlot(standaloneFig, ax=None):
     contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1040, 2), inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
-        validTime = pdtimestamp(np.datetime64(modelDataArray.valid_time.data)).to_pydatetime()
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 2
         writeJson(productId, gisInfo)
