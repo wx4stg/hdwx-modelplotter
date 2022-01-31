@@ -35,6 +35,9 @@ def writeToCmd(stringToWrite):
         cmdw.write(stringToWrite)
         cmdw.close()
 
+def deleteLockOnCrash(exceptionType, exceptionVal, traceback):
+    remove(path.join(basePath, path.join(basePath, "downloaderlock-"+modelName+".txt")))
+
 def writeToStatus(stringToWrite):
     print(stringToWrite)
     stringToWrite = stringToWrite+"\n"
@@ -91,11 +94,9 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
         else:
             writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
     return True
-    
-
-
 
 if __name__ == "__main__":
+    sys.excepthook = deleteLockOnCrash
     if path.exists(path.join(basePath, "downloaderlock-"+modelName+".txt")):
         writeToStatus("Downloader is locked for model "+modelName+", goodbye")
         exit()
@@ -160,7 +161,7 @@ if __name__ == "__main__":
             dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
             if dtKeyDt < dt.utcnow() and dtKeyDt > firstPlotTime:
                 runsAndFHours[dtKey] = fHoursShortRun
-    for run in runsAndFHours.keys():
+    for run in runsAndFHours.copy().keys():
         runfile = path.join(basePath, "output", "metadata", "products", str(productTypeBase), str(run)+".json")
         if path.exists(runfile):
             with open(runfile) as jsonRead:
