@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Surface temp, wind, mslp model postprocessing for next-gen HDWX
+# Model postprocessing for next-gen HDWX
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
@@ -217,7 +217,7 @@ def staticSFCTempWindMSLPPlot():
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
     ax = plt.axes(projection=ccrs.PlateCarree())
-    ax.set_extent([-131, -61, 21, 53], crs=ccrs.PlateCarree())
+    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     contourmap = tempPlot(False, ax=ax)
     windPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
@@ -225,12 +225,17 @@ def staticSFCTempWindMSLPPlot():
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     cbax = fig.add_axes([ax.get_position().x0,0.075,(ax.get_position().width/3),.02])
     cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", extend="both").set_ticks(np.sort(np.append(np.arange(-40, 120, 10), 32)))
+    targetIdx = list(list(plt.xticks())[0]).index(32)
+    plt.xticks()[-1][targetIdx].set_color("red")
     cbax.set_xlabel("Temperature (°F)")
     validTime = initDateTime + timedelta(hours=fhour)
     fig.set_size_inches(1920*px, 1080*px)
     tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.045,(ax.get_position().width/3),.05])
     tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
-    tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
+    if "ecmwf" in modelName:
+        tax.set_xlabel("\nPython HDWX -- Send bugs to stgardner4@tamu.edu\nCopyright © "+initDateTime.strftime("%Y")+" European Centre for Medium-Range Weather Forecasts (ECMWF)\nhttps://www.ecmwf.int/")
+    else:
+        tax.set_xlabel("\nPython HDWX -- Send bugs to stgardner4@tamu.edu\nData provided by NOAA/NCEP")
     plt.setp(tax.spines.values(), visible=False)
     tax.tick_params(left=False, labelleft=False)
     tax.tick_params(bottom=False, labelbottom=False)
@@ -280,9 +285,12 @@ def tempPlot(standaloneFig, ax=None):
     all_colors = np.vstack((frozenColorMap, meltedColorMap))
     temperatureColorMap = colors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
     temperatureNorm = colors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
-    levelsToContour = np.sort(np.append(np.arange(-40, 120, 5), 32))
+    levelsToContour = np.sort(np.append(np.arange(-40, 120, 10), 32))
     contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
     ax.contour(lonsToPlot, latsToPlot, tempData, levels=[32], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
+    contourLabels = ax.clabel(contourmap, levels=np.arange(-40, 120, 20), inline=True, fontsize=10, colors="black")
+    [label.set_rotation(0) for label in contourLabels]
+    [label.set_text(label.get_text()+"F") for label in contourLabels]
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
