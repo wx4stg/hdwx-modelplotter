@@ -78,6 +78,15 @@ def writeJson(productID, gisInfo):
     elif productID == 303:
         productDesc = "GFS Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
+    elif productID == 316:
+        productDesc = "GFS 500 hPa Winds"
+        dirname = "500wind"
+    elif productID == 321:
+        productDesc = "GFS 250 hPa Winds"
+        dirname = "250wind"
+    elif productID == 325:
+        productDesc = "GFS 850 hPa Winds"
+        dirname = "850wind"
     elif productID == 500:
         productDesc = "NAM Surface Temperature"
         dirname = "sfcT"
@@ -90,6 +99,14 @@ def writeJson(productID, gisInfo):
     elif productID == 503:
         productDesc = "NAM Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
+    elif productID == 516:
+        productDesc = "NAM 500 hPa Winds"
+        dirname = "500wind"
+    elif productID == 521:
+        productDesc = "NAM 250 hPa Winds"
+        dirname = "250wind"
+    elif productID == 525:
+        productDesc = "NAM 850 hPa Winds"
     elif productID == 600:
         productDesc = "NAM NEST Surface Temperature"
         dirname = "sfcT"
@@ -102,6 +119,12 @@ def writeJson(productID, gisInfo):
     elif productID == 603:
         productDesc = "NAM NEST Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
+    elif productID == 616:
+        productDesc = "NAM NEST 500 hPa Winds"
+    elif productID == 621:
+        productDesc = "NAM NEST 250 hPa Winds"
+    elif productID == 625:
+        productDesc = "NAM NEST 850 hPa Winds"
     elif productID == 800:
         productDesc = "HRRR Surface Temperature"
         dirname = "sfcT"
@@ -114,6 +137,12 @@ def writeJson(productID, gisInfo):
     elif productID == 803:
         productDesc = "HRRR Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
+    elif productID == 816:
+        productDesc = "HRRR 500 hPa Winds"
+    elif productID == 821:
+        productDesc = "HRRR 250 hPa Winds"
+    elif productID == 825:
+        productDesc = "HRRR 850 hPa Winds"
     elif productID == 1000:
         productDesc = "ECMWF-HRES Surface Temperature"
         dirname = "sfcT"
@@ -218,8 +247,8 @@ def staticSFCTempWindMSLPPlot():
     fig.set_size_inches(1920*px, 1080*px)
     ax = plt.axes(projection=ccrs.PlateCarree())
     ax.set_extent(axExtent, crs=ccrs.PlateCarree())
-    contourmap = tempPlot(False, ax=ax)
-    windPlot(False, ax=ax)
+    contourmap = sfcTempPlot(False, ax=ax)
+    sfcWindPlot(False, ax=ax)
     mslpPlot(False, ax=ax)
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
@@ -256,7 +285,7 @@ def staticSFCTempWindMSLPPlot():
     productId = productTypeBase + 3
     writeJson(productId, gisInfo)
 
-def tempPlot(standaloneFig, ax=None):
+def sfcTempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
     [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
@@ -300,7 +329,7 @@ def tempPlot(standaloneFig, ax=None):
         writeJson(productTypeBase, gisInfo)
     return contourmap
 
-def windPlot(standaloneFig, ax=None):
+def sfcWindPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sfcwind.grib2")
     [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
@@ -402,18 +431,68 @@ def mslpPlot(standaloneFig, ax=None):
         writeJson(productId, gisInfo)
     return contourmap
 
+def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "winds.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"wind", runPathExt)
+    Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+    uwind = modelDataArray["u"]
+    uwind = uwind.metpy.quantify()
+    uwind = uwind.metpy.convert_units("kt")
+    vwind = modelDataArray["v"]
+    vwind = vwind.metpy.quantify()
+    vwind = vwind.metpy.convert_units("kt")
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        spatialLimit = slice(None, None, 5)
+        dataLimit = (slice(None, None, 5), slice(None, None, 5))
+    elif modelName == "nam":
+        spatialLimit = (slice(None, None, 10), slice(None, None, 10))
+        dataLimit = (slice(None, None, 10), slice(None, None, 10))
+    elif modelName == "namnest" or modelName == "hrrr":
+        spatialLimit = (slice(None, None, 40), slice(None, None, 40))
+        dataLimit = (slice(None, None, 40), slice(None, None, 40))
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        if pressureLevel == 250:
+            addon = 21
+        elif pressureLevel == 500:
+            addon = 16
+        elif pressureLevel == 850:
+            addon = 25
+        productId = productTypeBase + addon
+        writeJson(productId, gisInfo)
+    return windbarbs
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
     sfcPressPath = path.join(inputPath, "sp.grib2")
+    windsAtHeightPath = path.join(inputPath, "winds.grib2")
     if path.exists(inputPath):
         if fieldToPlot == "t2m" and path.exists(sfcTempPath):
-            tempPlot(True)
+            sfcTempPlot(True)
         if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
-            windPlot(True)
+            sfcWindPlot(True)
         if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
             mslpPlot(True)
         if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
             staticSFCTempWindMSLPPlot()
+        if fieldToPlot == "winds" and path.exists(windsAtHeightPath):
+            [windsAtHeightPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
