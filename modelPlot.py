@@ -121,10 +121,13 @@ def writeJson(productID, gisInfo):
         dirname = "sfcTWndMSLP"
     elif productID == 616:
         productDesc = "NAM NEST 500 hPa Winds"
+        dirname = "500wind"
     elif productID == 621:
         productDesc = "NAM NEST 250 hPa Winds"
+        dirname = "250wind"
     elif productID == 625:
         productDesc = "NAM NEST 850 hPa Winds"
+        dirname = "850wind"
     elif productID == 800:
         productDesc = "HRRR Surface Temperature"
         dirname = "sfcT"
@@ -139,10 +142,13 @@ def writeJson(productID, gisInfo):
         dirname = "sfcTWndMSLP"
     elif productID == 816:
         productDesc = "HRRR 500 hPa Winds"
+        dirname = "500wind"
     elif productID == 821:
         productDesc = "HRRR 250 hPa Winds"
+        dirname = "250wind"
     elif productID == 825:
         productDesc = "HRRR 850 hPa Winds"
+        dirname = "850wind"
     elif productID == 1000:
         productDesc = "ECMWF-HRES Surface Temperature"
         dirname = "sfcT"
@@ -211,7 +217,7 @@ def writeJson(productID, gisInfo):
     with atomic_write(productRunDictPath, overwrite=True) as jsonWrite:
         json.dump(productRunDict, jsonWrite, indent=4)
     chmod(productRunDictPath, 0o644)
-    productTypeID = int(str(productTypeBase)[0])
+    productTypeID = productTypeBase // 100
     productTypeDictPath = path.join(basePath, "output/metadata/productTypes/"+str(productTypeID)+".json")
     Path(path.dirname(productTypeDictPath)).mkdir(parents=True, exist_ok=True)
     productsInType = list()
