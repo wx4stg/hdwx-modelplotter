@@ -40,7 +40,7 @@ then
         eval "$plotcmd" &
         procpids[${counter}]=$!
         ((counter=counter+1))
-        while [ ${#procpids[@]} == 4 ]
+        while [ ${#procpids[@]} == 6 ]
         do
             for procpid in ${procpids[*]}
             do

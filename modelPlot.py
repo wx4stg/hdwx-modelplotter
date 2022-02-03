@@ -46,7 +46,10 @@ elif modelName == "hrrr":
         productFrameCount = 19
 elif modelName == "ecmwf-hres":
     productTypeBase = 1000
-    productFrameCount = 61
+    if initDateTime.hour in [0, 12]:
+        productFrameCount = 61
+    else:
+        productFrameCount = 31
 else:
     raise Exception("<model> must be 'gfs', 'nam', 'namnest', 'hrrr', or 'ecmwf-hres'")
 
