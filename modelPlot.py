@@ -110,6 +110,7 @@ def writeJson(productID, gisInfo):
         dirname = "250wind"
     elif productID == 525:
         productDesc = "NAM 850 hPa Winds"
+        dirname = "850wind"
     elif productID == 600:
         productDesc = "NAM NEST Surface Temperature"
         dirname = "sfcT"
