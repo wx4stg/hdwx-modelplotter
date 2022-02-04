@@ -199,7 +199,7 @@ def writeJson(productID, gisInfo):
         framesArray = list()
     if len(listdir(path.join(basePath, "output/"+productPath+pathExtension))) > 0:
         frameNames = listdir(path.join(basePath, "output/"+productPath+pathExtension))
-        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames]
+        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames if ".png" in frameNames]
         for frameHr in frameHours:
             fvalidTime = initDateTime + timedelta(hours=frameHr)
             frmDict = {
