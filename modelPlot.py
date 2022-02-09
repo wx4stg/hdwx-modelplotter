@@ -165,6 +165,15 @@ def writeJson(productID, gisInfo):
     elif productID == 1003:
         productDesc = "ECMWF-HRES Surface Temperature, Winds, MSLP"
         dirname = "sfcTWndMSLP"
+    elif productID == 1016:
+        productDesc = "ECMWF-HRES 500 hPa Winds"
+        dirname = "500wind"
+    elif productID == 1021:
+        productDesc = "ECMWF-HRES 250 hPa Winds"
+        dirname = "250wind"
+    elif productID == 1025:
+        productDesc = "ECMWF-HRES 850 hPa Winds"
+        dirname = "850wind"
     if gisInfo == ["0,0", "0,0"]:
         isGIS = False
         productPath = "products/"
@@ -199,7 +208,7 @@ def writeJson(productID, gisInfo):
         framesArray = list()
     if len(listdir(path.join(basePath, "output/"+productPath+pathExtension))) > 0:
         frameNames = listdir(path.join(basePath, "output/"+productPath+pathExtension))
-        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames]
+        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames if ".png" in framename]
         for frameHr in frameHours:
             fvalidTime = initDateTime + timedelta(hours=frameHr)
             frmDict = {
