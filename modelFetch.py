@@ -18,7 +18,8 @@ euroVarList = {
     "t2m.grib2" : ["2t"],
     "sfcwind.grib2" : ["10u", "10v"],
     "sp.grib2" : ["msl"],
-    "sfccomposite" : list()
+    "sfccomposite" : list(),
+    "winds.grib2" : ["u", "v"]
 }
 ncepVarList = {
     "t2m.grib2" : "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 2m Temperature
@@ -199,3 +200,4 @@ if __name__ == "__main__":
             if len(failedFHoursThisRun) > 3:
                 break
     remove(path.join(basePath, "downloaderlock-"+modelName+".txt"))
+    print("Finished downloading for model "+modelName)
