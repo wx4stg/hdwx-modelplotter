@@ -2,26 +2,33 @@
 # Product generation script for hdwx-modelplotter
 # Created 15 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
+if [ -f ../config.txt ]
+then
+    source ../config.txt
+else
+    condaEnvName="HDWX"
+fi
+
 if [ ! -d output/ ]
 then
     mkdir output/
 fi
 
-if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
+if [ -f ~/mambaforge/envs/$condaEnvName/bin/python3 ]
 then
-    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py ecmwf-hres &
-    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py namnest &
-    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py nam &
-    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py gfs &
-    ~/mambaforge/envs/HDWX/bin/python3 modelFetch.py hrrr &
+    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py ecmwf-hres &
+    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py namnest &
+    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py nam &
+    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py gfs &
+    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py hrrr &
 fi
-if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+if [ -f ~/miniconda3/envs/$condaEnvName/bin/python3 ]
 then
-    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py ecmwf-hres &
-    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py namnest &
-    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py nam &
-    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py gfs &
-    ~/miniconda3/envs/HDWX/bin/python3 modelFetch.py hrrr &
+    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py ecmwf-hres &
+    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py namnest &
+    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py nam &
+    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py gfs &
+    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py hrrr &
 fi
 counter=0
 if [ ! -f plotterlock ]
@@ -57,11 +64,11 @@ then
     done
     rm plotterlock
 fi
-if [ -f ~/mambaforge/envs/HDWX/bin/python3 ]
+if [ -f ~/mambaforge/envs/$condaEnvName/bin/python3 ]
 then
-    ~/mambaforge/envs/HDWX/bin/python3 cleanup.py
+    ~/mambaforge/envs/$condaEnvName/bin/python3 cleanup.py
 fi
-if [ -f ~/miniconda3/envs/HDWX/bin/python3 ]
+if [ -f ~/miniconda3/envs/$condaEnvName/bin/python3 ]
 then
-    ~/miniconda3/envs/HDWX/bin/python3 cleanup.py
+    ~/miniconda3/envs/$condaEnvName/bin/python3 cleanup.py
 fi
