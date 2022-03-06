@@ -188,7 +188,7 @@ def writeJson(productID, gisInfo):
         "productDescription" : productDesc,
         "productPath" : productPath,
         "productReloadTime" : 60,
-        "lastReloadTime" : int(publishTime.strftime("%Y%m%d%H%M")),
+        "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
         "isForecast" : True,
         "isGIS" : isGIS,
         "fileExtension" : "png"
@@ -215,7 +215,7 @@ def writeJson(productID, gisInfo):
                 "fhour" : frameHr,
                 "filename" : "f"+str(frameHr)+".png",
                 "gisInfo" : gisInfo,
-                "valid" : int(fvalidTime.strftime("%Y%m%d%H%M"))
+                "valid" : fvalidTime.strftime("%Y%m%d%H%M")
             }
             if frmDict not in framesArray:
                 framesArray.append(frmDict)
