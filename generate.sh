@@ -14,21 +14,13 @@ then
     mkdir output/
 fi
 
-if [ -f ~/mambaforge/envs/$condaEnvName/bin/python3 ]
+if [ -f $condaRootPath/envs/$condaEnvName/bin/python3 ]
 then
-    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py ecmwf-hres &
-    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py namnest &
-    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py nam &
-    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py gfs &
-    ~/mambaforge/envs/$condaEnvName/bin/python3 modelFetch.py hrrr &
-fi
-if [ -f ~/miniconda3/envs/$condaEnvName/bin/python3 ]
-then
-    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py ecmwf-hres &
-    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py namnest &
-    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py nam &
-    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py gfs &
-    ~/miniconda3/envs/$condaEnvName/bin/python3 modelFetch.py hrrr &
+    $condaRootPath/envs/$condaEnvName/bin/python3 modelFetch.py ecmwf-hres &
+    $condaRootPath/envs/$condaEnvName/bin/python3 modelFetch.py namnest &
+    $condaRootPath/envs/$condaEnvName/bin/python3 modelFetch.py nam &
+    $condaRootPath/envs/$condaEnvName/bin/python3 modelFetch.py gfs &
+    $condaRootPath/envs/$condaEnvName/bin/python3 modelFetch.py hrrr &
 fi
 counter=0
 if [ ! -f plotterlock ]
@@ -64,11 +56,7 @@ then
     done
     rm plotterlock
 fi
-if [ -f ~/mambaforge/envs/$condaEnvName/bin/python3 ]
+if [ -f $condaRootPath/envs/$condaEnvName/bin/python3 ]
 then
-    ~/mambaforge/envs/$condaEnvName/bin/python3 cleanup.py
-fi
-if [ -f ~/miniconda3/envs/$condaEnvName/bin/python3 ]
-then
-    ~/miniconda3/envs/$condaEnvName/bin/python3 cleanup.py
+    $condaRootPath/envs/$condaEnvName/bin/python3 cleanup.py
 fi
