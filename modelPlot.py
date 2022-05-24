@@ -191,7 +191,8 @@ def writeJson(productID, gisInfo):
         "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
         "isForecast" : True,
         "isGIS" : isGIS,
-        "fileExtension" : "png"
+        "fileExtension" : "png",
+        "displayFrames" : 0
     }
     productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
     Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
