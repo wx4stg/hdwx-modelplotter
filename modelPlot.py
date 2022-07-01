@@ -8,6 +8,7 @@ from pathlib import Path
 import xarray as xr
 from metpy import constants
 from metpy.plots import USCOUNTIES
+from metpy import calc as mpcalc
 import metpy
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
@@ -153,6 +154,9 @@ def writeJson(productID, gisInfo):
     elif productID == 825:
         productDesc = "HRRR 850 hPa Winds"
         dirname = "850wind"
+    elif productID == 890:
+        productDesc = "HRRR Surface Wind Divergence"
+        dirname = "divergence"
     elif productID == 1000:
         productDesc = "ECMWF-HRES Surface Temperature"
         dirname = "sfcT"
@@ -356,7 +360,7 @@ def sfcWindPlot(standaloneFig, ax=None):
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
-    gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcWnd/"), runPathExt)
+    gisSavePath = path.join(basePath, "output", "gisproducts", modelName, "sfcWnd", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
     uwind = modelDataArray["u10"]
     uwind = uwind.metpy.quantify()
@@ -379,7 +383,7 @@ def sfcWindPlot(standaloneFig, ax=None):
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 40), slice(None, None, 40))
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
-    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5)
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -388,6 +392,58 @@ def sfcWindPlot(standaloneFig, ax=None):
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 1
         writeJson(productId, gisInfo)
+        if modelName == "hrrr":
+            div = mpcalc.divergence(uwind.metpy.convert_units("m/s"), vwind.metpy.convert_units("m/s"))
+            ax.scatter([-95.74010, -95.059671], [29.32937, 29.669285], s=10, c="green", marker="s", transform=ccrs.PlateCarree(), zorder=3)
+            contourmap = ax.contourf(div.longitude, div.latitude, div, cmap="RdBu", norm=colors.TwoSlopeNorm(0, -.004, .006), levels=np.linspace(-.004, .006, 100), transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+            spatialLimit = (slice(None, None, 10), slice(None, None, 10))
+            dataLimit = (slice(None, None, 10), slice(None, None, 10))
+            windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
+            tracerAxExtent = [-99.5, -91, 26, 33.5]
+            
+            
+            ax.set_extent(tracerAxExtent)
+
+            # For the "static"/non-GIS/opaque image, add county/state/coastline borders
+            ax.add_feature(USCOUNTIES.with_scale("5m"), edgecolor="gray", zorder=2)
+            ax.add_feature(cfeat.STATES.with_scale("10m"), linewidth=0.5, zorder=3)
+            ax.add_feature(cfeat.COASTLINE.with_scale("10m"), linewidth=0.5, zorder=3)
+            # Reduce whitespace around data axes
+            ax.set_box_aspect(9/16)
+            # Move the data axes to maximize the amount of space available to it
+            ax.set_position([0.05, 0.11, .9, .87])
+            cbax = fig.add_axes([.01,0.075,(ax.get_position().width/3),.02])
+            cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", label="Divergence (1/s)", extend="both")
+            cb.set_ticks(np.arange(-.004, .006, .001))
+            cb.formatter.set_powerlimits((0,0))
+            tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.03,(ax.get_position().width/3),.05])
+            validTime = initDateTime + timedelta(hours=fhour)
+            tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\nSurface wind divergence\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
+            tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
+            plt.setp(tax.spines.values(), visible=False)
+            tax.tick_params(left=False, labelleft=False)
+            tax.tick_params(bottom=False, labelbottom=False)
+            lax = fig.add_axes([(.99-(ax.get_position().width/3)),0,(ax.get_position().width/3),.1])
+            lax.set_aspect(2821/11071)
+            lax.axis("off")
+            plt.setp(lax.spines.values(), visible=False)
+            atmoLogo = mpimage.imread(path.join(basePath, "assets", "atmoLogo.png"))
+            lax.imshow(atmoLogo)
+            ax.set_position([.005, cbax.get_position().y0+cbax.get_position().height+.005, .99, (.99-(cbax.get_position().y0+cbax.get_position().height))])
+            # Set size to 1080p, resolution of the weather center monitors
+            fig.set_size_inches(1920*px, 1080*px)
+            runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+            staticSavePath = path.join(basePath, "output/products/"+modelName+"/divergence/"+runPathExt)
+            # Create save directory if it doesn't already exist
+            Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+            # Write the image
+            fig.savefig(staticSavePath+"/f"+str(fhour)+".png")
+            writeJson(890, ["0,0", "0,0"])
+            plt.close(fig)
+
+
+
+
     return windbarbs
 
 def mslpPlot(standaloneFig, ax=None):
