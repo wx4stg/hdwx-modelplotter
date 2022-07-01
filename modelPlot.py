@@ -394,14 +394,12 @@ def sfcWindPlot(standaloneFig, ax=None):
         writeJson(productId, gisInfo)
         if modelName == "hrrr":
             div = mpcalc.divergence(uwind.metpy.convert_units("m/s"), vwind.metpy.convert_units("m/s"))
-            ax.scatter([-95.74010, -95.059671], [29.32937, 29.669285], s=10, c="green", marker="s", transform=ccrs.PlateCarree(), zorder=3)
-            contourmap = ax.contourf(div.longitude, div.latitude, div, cmap="RdBu", norm=colors.TwoSlopeNorm(0, -.004, .006), levels=np.linspace(-.004, .006, 100), transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+            ax.scatter([-95.74010, -95.059671], [29.32937, 29.669285], s=50, c="green", marker="s", transform=ccrs.PlateCarree(), zorder=3)
+            contourmap = ax.contourf(div.longitude, div.latitude, div, cmap="Reds_r", levels=np.linspace(-.004, 0, 100), transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
             spatialLimit = (slice(None, None, 10), slice(None, None, 10))
             dataLimit = (slice(None, None, 10), slice(None, None, 10))
             windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
             tracerAxExtent = [-99.5, -91, 26, 33.5]
-            
-            
             ax.set_extent(tracerAxExtent)
 
             # For the "static"/non-GIS/opaque image, add county/state/coastline borders
@@ -413,12 +411,12 @@ def sfcWindPlot(standaloneFig, ax=None):
             # Move the data axes to maximize the amount of space available to it
             ax.set_position([0.05, 0.11, .9, .87])
             cbax = fig.add_axes([.01,0.075,(ax.get_position().width/3),.02])
-            cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", label="Divergence (1/s)", extend="both")
-            cb.set_ticks(np.arange(-.004, .006, .001))
+            cb = fig.colorbar(contourmap, cax=cbax, orientation="horizontal", label="Divergence (1/s)", extend="min")
+            cb.set_ticks(np.arange(-.004, 0, .001))
             cb.formatter.set_powerlimits((0,0))
             tax = fig.add_axes([ax.get_position().x0+cbax.get_position().width+.01,0.03,(ax.get_position().width/3),.05])
             validTime = initDateTime + timedelta(hours=fhour)
-            tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\nSurface wind divergence\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
+            tax.text(0.5, 0.5, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\nSurface wind convergence\nf"+str(fhour)+" Valid "+validTime.strftime("%-d %b %Y %H%MZ"), horizontalalignment="center", verticalalignment="center", fontsize=16)
             tax.set_xlabel("Python HDWX -- Send bugs to stgardner4@tamu.edu")
             plt.setp(tax.spines.values(), visible=False)
             tax.tick_params(left=False, labelleft=False)
