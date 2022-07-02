@@ -187,6 +187,9 @@ def writeJson(productID, gisInfo):
     elif productID == 1025:
         productDesc = "ECMWF-HRES 850 hPa Winds"
         dirname = "850wind"
+    elif productID == 1090:
+        productDesc = "ECMWF Surface Wind Divergence"
+        dirname = "divergence"
     if gisInfo == ["0,0", "0,0"]:
         isGIS = False
         productPath = "products/"
