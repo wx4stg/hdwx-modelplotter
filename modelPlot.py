@@ -281,7 +281,7 @@ def staticSFCTempWindMSLPPlot():
     fig = plt.figure()
     px = 1/plt.rcParams["figure.dpi"]
     fig.set_size_inches(1920*px, 1080*px)
-    ax = plt.axes(projection=ccrs.PlateCarree())
+    ax = plt.axes(projection=ccrs.LambertConformal())
     ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     contourmap = sfcTempPlot(False, ax=ax)
     sfcWindPlot(False, ax=ax)
