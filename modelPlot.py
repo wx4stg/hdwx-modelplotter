@@ -408,7 +408,7 @@ def sfcWindPlot(standaloneFig, ax=None):
         # TRACER sea-breeze convergence thing
         div = mpcalc.divergence(uwind.metpy.convert_units("m/s"), vwind.metpy.convert_units("m/s"))
         ax.scatter([-95.74010, -95.059671], [29.32937, 29.669285], s=50, c="green", marker="s", transform=ccrs.PlateCarree(), zorder=3)
-        contourmap = ax.contourf(div.longitude, div.latitude, div, cmap="Reds_r", levels=np.linspace(-.004, 0, 100), transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+        contourmap = ax.contourf(div.longitude, div.latitude, div, cmap="hot", levels=np.linspace(-.004, 0, 100), transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
         spatialLimit = (slice(None, None, 10), slice(None, None, 10))
         dataLimit = (slice(None, None, 10), slice(None, None, 10))
         windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
