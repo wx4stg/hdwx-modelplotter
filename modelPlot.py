@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Model postprocessing for next-gen HDWX
+# Model postprocessing for python-based HDWX
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
