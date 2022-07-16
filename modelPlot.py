@@ -38,25 +38,14 @@ if path.exists(path.join(basePath, "HDWX_helpers.py")):
 
 if modelName == "gfs":
     productTypeBase = 300
-    productFrameCount = 209
 elif modelName == "nam":
     productTypeBase = 500
-    productFrameCount = 53
 elif modelName == "namnest":
     productTypeBase = 600
-    productFrameCount = 61
 elif modelName == "hrrr":
     productTypeBase = 800
-    if initDateTime.hour in [0, 6, 12, 18]:
-        productFrameCount = 49
-    else:
-        productFrameCount = 19
 elif modelName == "ecmwf-hres":
     productTypeBase = 1000
-    if initDateTime.hour in [0, 12]:
-        productFrameCount = 61
-    else:
-        productFrameCount = 31
 else:
     raise Exception("<model> must be 'gfs', 'nam', 'namnest', 'hrrr', or 'ecmwf-hres'")
 
