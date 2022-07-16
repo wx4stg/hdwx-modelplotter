@@ -6,3 +6,4 @@ status.txt
 downloaderlock-*
 plotter-is-reading
 plotterlock
+HDWX_helpers.py

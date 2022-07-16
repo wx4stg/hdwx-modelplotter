@@ -28,8 +28,14 @@ modelName = sys.argv[1]
 initDateTime = dt.strptime(sys.argv[2], "%Y%m%d%H%M")
 fhour = int(sys.argv[3])
 fieldToPlot = sys.argv[4]
-basePath = path.dirname(path.abspath(__file__))
 axExtent = [-130, -60, 20, 50]
+basePath = path.dirname(path.abspath(__file__))
+
+hasHelpers = False
+if path.exists(path.join(basePath, "HDWX_helpers.py")):
+    import HDWX_helpers
+    hasHelpers = True
+
 if modelName == "gfs":
     productTypeBase = 300
     productFrameCount = 209
@@ -67,205 +73,6 @@ def writeToStatus(stringToWrite):
         with open(path.join(basePath, "status.txt"), "a") as statw:
             statw.write(stringToWrite)
             statw.close()
-
-
-def writeJson(productID, gisInfo):
-    if productID == 300:
-        productDesc = "GFS Surface Temperature"
-        dirname = "sfcT"
-    elif productID == 301:
-        productDesc = "GFS Surface Winds"
-        dirname = "sfcWnd"
-    elif productID == 302:
-        productDesc = "GFS Surface MSLP"
-        dirname = "sfcMSLP"
-    elif productID == 303:
-        productDesc = "GFS Surface Temperature, Winds, MSLP"
-        dirname = "sfcTWndMSLP"
-    elif productID == 316:
-        productDesc = "GFS 500 hPa Winds"
-        dirname = "500wind"
-    elif productID == 321:
-        productDesc = "GFS 250 hPa Winds"
-        dirname = "250wind"
-    elif productID == 325:
-        productDesc = "GFS 850 hPa Winds"
-        dirname = "850wind"
-    elif productID == 390:
-        productDesc = "GFS Surface Wind Divergence"
-        dirname = "divergence"
-    elif productID == 500:
-        productDesc = "NAM Surface Temperature"
-        dirname = "sfcT"
-    elif productID == 501:
-        productDesc = "NAM Surface Winds"
-        dirname = "sfcWnd"
-    elif productID == 502:
-        productDesc = "NAM Surface MSLP"
-        dirname = "sfcMSLP"
-    elif productID == 503:
-        productDesc = "NAM Surface Temperature, Winds, MSLP"
-        dirname = "sfcTWndMSLP"
-    elif productID == 516:
-        productDesc = "NAM 500 hPa Winds"
-        dirname = "500wind"
-    elif productID == 521:
-        productDesc = "NAM 250 hPa Winds"
-        dirname = "250wind"
-    elif productID == 525:
-        productDesc = "NAM 850 hPa Winds"
-        dirname = "850wind"
-    elif productID == 590:
-        productDesc = "NAM Surface Wind Divergence"
-        dirname = "divergence"
-    elif productID == 600:
-        productDesc = "NAM NEST Surface Temperature"
-        dirname = "sfcT"
-    elif productID == 601:
-        productDesc = "NAM NEST Surface Winds"
-        dirname = "sfcWnd"
-    elif productID == 602:
-        productDesc = "NAM NEST Surface MSLP"
-        dirname = "sfcMSLP"
-    elif productID == 603:
-        productDesc = "NAM NEST Surface Temperature, Winds, MSLP"
-        dirname = "sfcTWndMSLP"
-    elif productID == 616:
-        productDesc = "NAM NEST 500 hPa Winds"
-        dirname = "500wind"
-    elif productID == 621:
-        productDesc = "NAM NEST 250 hPa Winds"
-        dirname = "250wind"
-    elif productID == 625:
-        productDesc = "NAM NEST 850 hPa Winds"
-        dirname = "850wind"
-    elif productID == 690:
-        productDesc = "NAM NEST Surface Wind Divergence"
-        dirname = "divergence"
-    elif productID == 800:
-        productDesc = "HRRR Surface Temperature"
-        dirname = "sfcT"
-    elif productID == 801:
-        productDesc = "HRRR Surface Winds"
-        dirname = "sfcWnd"
-    elif productID == 802:
-        productDesc = "HRRR Surface MSLP"
-        dirname = "sfcMSLP"
-    elif productID == 803:
-        productDesc = "HRRR Surface Temperature, Winds, MSLP"
-        dirname = "sfcTWndMSLP"
-    elif productID == 816:
-        productDesc = "HRRR 500 hPa Winds"
-        dirname = "500wind"
-    elif productID == 821:
-        productDesc = "HRRR 250 hPa Winds"
-        dirname = "250wind"
-    elif productID == 825:
-        productDesc = "HRRR 850 hPa Winds"
-        dirname = "850wind"
-    elif productID == 890:
-        productDesc = "HRRR Surface Wind Divergence"
-        dirname = "divergence"
-    elif productID == 1000:
-        productDesc = "ECMWF-HRES Surface Temperature"
-        dirname = "sfcT"
-    elif productID == 1001:
-        productDesc = "ECMWF-HRES Surface Winds"
-        dirname = "sfcWnd"
-    elif productID == 1002:
-        productDesc = "ECMWF-HRES Surface MSLP"
-        dirname = "sfcMSLP"
-    elif productID == 1003:
-        productDesc = "ECMWF-HRES Surface Temperature, Winds, MSLP"
-        dirname = "sfcTWndMSLP"
-    elif productID == 1016:
-        productDesc = "ECMWF-HRES 500 hPa Winds"
-        dirname = "500wind"
-    elif productID == 1021:
-        productDesc = "ECMWF-HRES 250 hPa Winds"
-        dirname = "250wind"
-    elif productID == 1025:
-        productDesc = "ECMWF-HRES 850 hPa Winds"
-        dirname = "850wind"
-    elif productID == 1090:
-        productDesc = "ECMWF Surface Wind Divergence"
-        dirname = "divergence"
-    if gisInfo == ["0,0", "0,0"]:
-        isGIS = False
-        productPath = "products/"
-    else:
-        isGIS = True
-        productPath = "gisproducts/"
-    productPath = productPath+modelName+"/"+dirname+"/"
-    pathExtension = initDateTime.strftime("%Y/%m/%d/%H%M/")
-    publishTime = dt.utcnow()
-    productDict = {
-        "productID" : productID,
-        "productDescription" : productDesc,
-        "productPath" : productPath,
-        "productReloadTime" : 60,
-        "lastReloadTime" : publishTime.strftime("%Y%m%d%H%M"),
-        "isForecast" : True,
-        "isGIS" : isGIS,
-        "fileExtension" : "png",
-        "displayFrames" : 0
-    }
-    productDictJsonPath = path.join(basePath, "output/metadata/"+str(productID)+".json")
-    Path(path.dirname(productDictJsonPath)).mkdir(parents=True, exist_ok=True)
-    with atomic_write(productDictJsonPath, overwrite=True) as jsonWrite:
-        json.dump(productDict, jsonWrite, indent=4)
-    chmod(productDictJsonPath, 0o644)
-    productRunDictPath = path.join(basePath, "output/metadata/products/"+str(productID)+"/"+initDateTime.strftime("%Y%m%d%H%M")+".json")
-    Path(path.dirname(productRunDictPath)).mkdir(parents=True, exist_ok=True)
-    if path.exists(productRunDictPath):
-        with open(productRunDictPath, "r") as jsonRead:
-            oldData = json.load(jsonRead)
-        framesArray = oldData["productFrames"]
-    else:
-        framesArray = list()
-    if len(listdir(path.join(basePath, "output/"+productPath+pathExtension))) > 0:
-        frameNames = listdir(path.join(basePath, "output/"+productPath+pathExtension))
-        frameHours = [int(framename.replace("f", "").replace(".png", "")) for framename in frameNames if ".png" in framename]
-        for frameHr in frameHours:
-            fvalidTime = initDateTime + timedelta(hours=frameHr)
-            frmDict = {
-                "fhour" : frameHr,
-                "filename" : "f"+str(frameHr)+".png",
-                "gisInfo" : gisInfo,
-                "valid" : fvalidTime.strftime("%Y%m%d%H%M")
-            }
-            if frmDict not in framesArray:
-                framesArray.append(frmDict)
-    productRunDict = {
-        "publishTime" : int(publishTime.strftime("%Y%m%d%H%M")),
-        "pathExtension" : pathExtension,
-        "runName" : initDateTime.strftime("%d %b %Y %HZ"),
-        "availableFrameCount" : len(framesArray),
-        "totalFrameCount" : productFrameCount,
-        "productFrames" : sorted(framesArray, key=lambda dict: dict["fhour"]) 
-    }
-    with atomic_write(productRunDictPath, overwrite=True) as jsonWrite:
-        json.dump(productRunDict, jsonWrite, indent=4)
-    chmod(productRunDictPath, 0o644)
-    productTypeID = productTypeBase // 100
-    productTypeDictPath = path.join(basePath, "output/metadata/productTypes/"+str(productTypeID)+".json")
-    Path(path.dirname(productTypeDictPath)).mkdir(parents=True, exist_ok=True)
-    productsInType = list()
-    if path.exists(productTypeDictPath):
-        with open(productTypeDictPath, "r") as jsonRead:
-            oldProductTypeDict = json.load(jsonRead)
-        for productInOldDict in oldProductTypeDict["products"]:
-            if productInOldDict["productID"] != productID:
-                productsInType.append(productInOldDict)
-    productsInType.append(productDict)
-    productTypeDict = {
-        "productTypeID" : productTypeID,
-        "productTypeDescription" : modelName.upper(),
-        "products" : sorted(productsInType, key=lambda dict: dict["productID"])
-    }
-    with atomic_write(productTypeDictPath, overwrite=True) as jsonWrite:
-        json.dump(productTypeDict, jsonWrite, indent=4)
-    chmod(productTypeDictPath, 0o644)
 
 def set_size(w,h, ax=None):
     if not ax: ax=plt.gca()
@@ -319,7 +126,8 @@ def staticSFCTempWindMSLPPlot():
     plt.close(fig)
     gisInfo = ["0,0", "0,0"]
     productId = productTypeBase + 3
-    writeJson(productId, gisInfo)
+    if hasHelpers:
+        HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
 
 def sfcTempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
@@ -362,7 +170,9 @@ def sfcTempPlot(standaloneFig, ax=None):
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
-        writeJson(productTypeBase, gisInfo)
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productTypeBase, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
     return contourmap
 
 def sfcWindPlot(standaloneFig, ax=None):
@@ -403,7 +213,9 @@ def sfcWindPlot(standaloneFig, ax=None):
         plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 1
-        writeJson(productId, gisInfo)
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
         
         # TRACER sea-breeze convergence thing
         div = mpcalc.divergence(uwind.metpy.convert_units("m/s"), vwind.metpy.convert_units("m/s"))
@@ -448,7 +260,8 @@ def sfcWindPlot(standaloneFig, ax=None):
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
         # Write the image
         fig.savefig(staticSavePath+"/f"+str(fhour)+".png")
-        writeJson(productTypeBase + 90, ["0,0", "0,0"])
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, (productTypeBase + 90), initDateTime, "f"+str(fhour)+".png", validTime, ["0,0", "0,0"], 60)
         plt.close(fig)
         return windbarbs
 
@@ -510,7 +323,9 @@ def mslpPlot(standaloneFig, ax=None):
     if standaloneFig:
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 2
-        writeJson(productId, gisInfo)
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
     return contourmap
 
 def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
@@ -558,7 +373,9 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
         elif pressureLevel == 850:
             addon = 25
         productId = productTypeBase + addon
-        writeJson(productId, gisInfo)
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
     return windbarbs
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
