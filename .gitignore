@@ -7,3 +7,5 @@ downloaderlock-*
 plotter-is-reading
 plotterlock
 HDWX_helpers.py
+lastCleanDT.txt
+__pycache__/
