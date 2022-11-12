@@ -371,8 +371,9 @@ def updraftHelicityPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = udhel.longitude
         latsToPlot = udhel.latitude
-    ax.contourf(lonsToPlot, latsToPlot, udhel, levels=[50, 999999], cmap="Greys", vmin=0, vmax=100, transform=ccrs.PlateCarree(), zorder=2, transform_first=True, alpha=0.5)
-    ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=0.5)
+    if np.max(udhel.data) > 50:
+        ax.contourf(lonsToPlot, latsToPlot, udhel, levels=[50, 999999], cmap="Greys", vmin=0, vmax=100, transform=ccrs.PlateCarree(), zorder=2, transform_first=True, alpha=0.5)
+        ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=0.5)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -394,14 +395,21 @@ def staticSimDBZPlot(compOrAGL):
     ax = plt.axes(projection=ccrs.LambertConformal())
     ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     sfcWindPlot(False, ax=ax)
-    updraftHelicityPlot(False, ax=ax)
+    if modelName in ["namnest", "hrrr"]:
+        updraftHelicityPlot(False, ax=ax)
     if compOrAGL == "refccomposite":
         addon = 10
-        titleStr = "Composite Reflectivity, Updraft Helicity > 50 $m^2 s^{-2}$, 10m Winds"
+        if modelName in ["namnest", "hrrr"]:
+            titleStr = "Composite Reflectivity, Updraft Helicity > 50 $m^2 s^{-2}$, 10m Winds"
+        else:
+            titleStr = "Composite Reflectivity, 10m Winds"
         rdr = simReflectivityPlot("refc.grib2", False, ax=ax)
     elif compOrAGL == "refdcomposite":
         addon = 81
-        titleStr = "1km AGL Reflectivity, Updraft Helicity > 50 $m^2$ $s^{-2}$, 10m Winds"
+        if modelName in ["namnest", "hrrr"]:
+            titleStr = "1km AGL Reflectivity, Updraft Helicity > 50 $m^2 s^{-2}$, 10m Winds"
+        else:
+            titleStr = "1km AGL Reflectivity, 10m Winds"
         rdr = simReflectivityPlot("refd.grib2", False, ax=ax)
 
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
@@ -445,9 +453,17 @@ if __name__ == "__main__":
             simReflectivityPlot("refc.grib2", True)
         if fieldToPlot == "udh" and path.exists(updraftHelicityPath):
             updraftHelicityPlot(True)
-        if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(updraftHelicityPath) and path.exists(sfcWindsPath):
-            staticSimDBZPlot("refccomposite")
+        if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(sfcWindsPath):
+            if modelName in ["namnest", "hrrr"]:
+                if path.exists(updraftHelicityPath):
+                    staticSimDBZPlot("refccomposite")
+            else:
+                staticSimDBZPlot("refccomposite")
         if fieldToPlot == "refd" and path.exists(aglReflectivityPath):
             simReflectivityPlot("refd.grib2", True)
-        if fieldToPlot == "refdcomposite" and path.exists(aglReflectivityPath) and path.exists(updraftHelicityPath) and path.exists(sfcWindsPath):
-            staticSimDBZPlot("refdcomposite")       
+        if fieldToPlot == "refdcomposite" and path.exists(aglReflectivityPath) and path.exists(sfcWindsPath):
+            if modelName in ["namnest", "hrrr"]:
+                if path.exists(updraftHelicityPath):
+                    staticSimDBZPlot("refdcomposite")
+            else:
+                staticSimDBZPlot("refdcomposite")

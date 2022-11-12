@@ -27,7 +27,7 @@ ncepVarList = {
     "sp.grib2" : "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # surface pressure and orography
     "sfccomposite" : "",
     "winds.grib2" : "&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # winds at pressure surface
-    "refc.grib2" : "&lev_entire_atmosphere=on&var_REFC=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # composite simulated reflectivity
+    "refc.grib2" : "&var_REFC=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # composite simulated reflectivity
     "udh.grib2" : "&lev_5000-2000_m_above_ground=on&var_MXUPHL=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # updraft helicity
     "refccomposite" : "",
     "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F",
@@ -89,6 +89,9 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
     requestedForecastHour = str(f'{fHour:02}')
     requestedForecastHourLong = str(f'{fHour:03}')
     for filename, reqVariable in ncepVarList.items():
+        if filename == "udh.grib2":
+            if modelName not in ["namnest", "hrrr"]:
+                continue
         if "grib2" in filename:
             urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", reqVariable).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
             modelData = requests.get(urlToFetch)
