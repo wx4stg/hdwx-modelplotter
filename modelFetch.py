@@ -26,7 +26,12 @@ ncepVarList = {
     "sfcwind.grib2" : "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 10m u and v
     "sp.grib2" : "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # surface pressure and orography
     "sfccomposite" : "",
-    "winds.grib2" : "&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F" # winds at pressure surface
+    "winds.grib2" : "&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # winds at pressure surface
+    "refc.grib2" : "&lev_entire_atmosphere=on&var_REFC=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # composite simulated reflectivity
+    "udh.grib2" : "&lev_5000-2000_m_above_ground=on&var_MXUPHL=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # updraft helicity
+    "refccomposite" : "",
+    "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F",
+    "refdcomposite" : ""
 }
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")

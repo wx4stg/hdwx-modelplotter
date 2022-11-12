@@ -17,7 +17,7 @@ import numpy as np
 from datetime import datetime as dt, timedelta
 from pandas import Timestamp as pdtimestamp
 from matplotlib import image as mpimage
-from matplotlib import colors
+from matplotlib import colors as pltcolors
 from scipy import ndimage
 import json
 import warnings
@@ -128,8 +128,8 @@ def sfcTempPlot(standaloneFig, ax=None):
     frozenColorMap = plt.cm.cool_r(np.linspace(0, 1, 25))
     meltedColorMap = plt.cm.turbo(np.linspace(0.35, 1, 25))
     all_colors = np.vstack((frozenColorMap, meltedColorMap))
-    temperatureColorMap = colors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
-    temperatureNorm = colors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
+    temperatureColorMap = pltcolors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
+    temperatureNorm = pltcolors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
     levelsToContour = np.sort(np.append(np.arange(-40, 120, 10), 32))
     contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
     ax.contour(lonsToPlot, latsToPlot, tempData, levels=[32], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
@@ -302,6 +302,124 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
         if hasHelpers:
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
     return windbarbs
+
+def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    pathToRead = path.join(inputPath, fileToRead)
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    if "refc" in list(modelDataArray.variables):
+        prodString = "simrefc"
+        simDBZ = modelDataArray.refc
+    elif "refd" in list(modelDataArray.variables):
+        prodString = "simrefd"
+        simDBZ = modelDataArray.refd
+    else:
+        return
+    specR = plt.cm.Spectral_r(np.linspace(0, 1, 200))
+    pink = plt.cm.PiYG(np.linspace(0, 0.25, 40))
+    purple = plt.cm.PRGn_r(np.linspace(0.75, 1, 40))
+    cArr = np.vstack((specR, pink, purple))
+    cmap = pltcolors.LinearSegmentedColormap.from_list("cvd-reflectivity", cArr)
+    vmin=10
+    vmax=80
+    dataMask = np.where(np.logical_and(simDBZ.data>=10, simDBZ.data<=80), 0, 1)
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    rdr = ax.pcolormesh(simDBZ.longitude, simDBZ.latitude, np.ma.masked_array(simDBZ, mask=dataMask), cmap=cmap, vmin=vmin, vmax=vmax, transform=ccrs.PlateCarree(), zorder=1)
+
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        gisSavePath = path.join(basePath, "output", "gisproducts", modelName, prodString, runPathExt)
+        Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        if prodString == "simrefc":
+            addon = 8
+        elif prodString == "simrefd":
+            addon = 80
+        productId = productTypeBase + addon
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return rdr
+
+def updraftHelicityPlot(standaloneFig, ax=None):
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    pathToRead = path.join(inputPath, "udh.grib2")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    udhel = modelDataArray.unknown
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+            lonsToPlot = np.tile(np.array([udhel.longitude.data]), (udhel.data.shape[0], 1))
+            latsToPlot = np.tile(udhel.latitude.data, (udhel.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = udhel.longitude
+        latsToPlot = udhel.latitude
+    ax.contourf(lonsToPlot, latsToPlot, udhel, levels=[50, 999999], cmap="Greys", vmin=0, vmax=100, transform=ccrs.PlateCarree(), zorder=2, transform_first=True, alpha=0.5)
+    ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=0.5)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        gisSavePath = path.join(basePath, "output", "gisproducts", modelName, "udhelicity", runPathExt)
+        Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        productId = productTypeBase + 9
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+
+def staticSimDBZPlot(compOrAGL):
+    fig = plt.figure()
+    px = 1/plt.rcParams["figure.dpi"]
+    fig.set_size_inches(1920*px, 1080*px)
+    ax = plt.axes(projection=ccrs.LambertConformal())
+    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    sfcWindPlot(False, ax=ax)
+    updraftHelicityPlot(False, ax=ax)
+    if compOrAGL == "refccomposite":
+        addon = 10
+        titleStr = "Composite Reflectivity, Updraft Helicity > 50 $m^2 s^{-2}$, 10m Winds"
+        rdr = simReflectivityPlot("refc.grib2", False, ax=ax)
+    elif compOrAGL == "refdcomposite":
+        addon = 81
+        titleStr = "1km AGL Reflectivity, Updraft Helicity > 50 $m^2$ $s^{-2}$, 10m Winds"
+        rdr = simReflectivityPlot("refd.grib2", False, ax=ax)
+
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    validTime = initDateTime + timedelta(hours=fhour)
+    if hasHelpers:
+        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n"+titleStr, validTime, fhour=fhour, notice=None, plotHandle=rdr, colorbarLabel="Simulated Reflectivity (dBZ)")
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    staticSavePath = path.join(basePath, "output", "products", modelName, compOrAGL, runPathExt)
+    Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+    fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
+    gisInfo = ["0,0", "0,0"]
+    productId = productTypeBase + addon
+    if hasHelpers:
+        HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+
+
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
@@ -309,6 +427,9 @@ if __name__ == "__main__":
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")
     sfcPressPath = path.join(inputPath, "sp.grib2")
     windsAtHeightPath = path.join(inputPath, "winds.grib2")
+    compositeReflectivityPath = path.join(inputPath, "refc.grib2")
+    updraftHelicityPath = path.join(inputPath, "udh.grib2")
+    aglReflectivityPath = path.join(inputPath, "refd.grib2")
     if path.exists(inputPath):
         if fieldToPlot == "t2m" and path.exists(sfcTempPath):
             sfcTempPlot(True)
@@ -320,3 +441,13 @@ if __name__ == "__main__":
             staticSFCTempWindMSLPPlot()
         if fieldToPlot == "winds" and path.exists(windsAtHeightPath):
             [windsAtHeightPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
+        if fieldToPlot == "refc" and path.exists(compositeReflectivityPath):
+            simReflectivityPlot("refc.grib2", True)
+        if fieldToPlot == "udh" and path.exists(updraftHelicityPath):
+            updraftHelicityPlot(True)
+        if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(updraftHelicityPath) and path.exists(sfcWindsPath):
+            staticSimDBZPlot("refccomposite")
+        if fieldToPlot == "refd" and path.exists(aglReflectivityPath):
+            simReflectivityPlot("refd.grib2", True)
+        if fieldToPlot == "refdcomposite" and path.exists(aglReflectivityPath) and path.exists(updraftHelicityPath) and path.exists(sfcWindsPath):
+            staticSimDBZPlot("refdcomposite")       
