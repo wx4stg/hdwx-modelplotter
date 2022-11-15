@@ -395,7 +395,7 @@ def staticSimDBZPlot(compOrAGL):
     ax = plt.axes(projection=ccrs.LambertConformal())
     ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     sfcWindPlot(False, ax=ax)
-    if modelName in ["namnest", "hrrr"]:
+    if modelName in ["namnest", "hrrr"] and fhour != 0:
         updraftHelicityPlot(False, ax=ax)
     if compOrAGL == "refccomposite":
         addon = 10
@@ -454,7 +454,7 @@ if __name__ == "__main__":
         if fieldToPlot == "udh" and path.exists(updraftHelicityPath):
             updraftHelicityPlot(True)
         if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(sfcWindsPath):
-            if modelName in ["namnest", "hrrr"]:
+            if modelName in ["namnest", "hrrr"] or fhour == 0:
                 if path.exists(updraftHelicityPath):
                     staticSimDBZPlot("refccomposite")
             else:
