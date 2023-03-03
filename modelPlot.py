@@ -454,7 +454,7 @@ if __name__ == "__main__":
         if fieldToPlot == "udh" and path.exists(updraftHelicityPath):
             updraftHelicityPlot(True)
         if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(sfcWindsPath):
-            if modelName in ["namnest", "hrrr"] or fhour == 0:
+            if modelName in ["namnest", "hrrr"] and fhour != 0:
                 if path.exists(updraftHelicityPath):
                     staticSimDBZPlot("refccomposite")
             else:
@@ -462,7 +462,7 @@ if __name__ == "__main__":
         if fieldToPlot == "refd" and path.exists(aglReflectivityPath):
             simReflectivityPlot("refd.grib2", True)
         if fieldToPlot == "refdcomposite" and path.exists(aglReflectivityPath) and path.exists(sfcWindsPath):
-            if modelName in ["namnest", "hrrr"]:
+            if modelName in ["namnest", "hrrr"] and fhour != 0:
                 if path.exists(updraftHelicityPath) or fhour == 0:
                     staticSimDBZPlot("refdcomposite")
             else:
