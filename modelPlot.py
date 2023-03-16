@@ -427,6 +427,57 @@ def staticSimDBZPlot(compOrAGL):
     if hasHelpers:
         HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
 
+def heightsPlot(pressureLevel, standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "heights.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    if pressureLevel not in modelDataArray.isobaricInhPa.values:
+        return
+    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"hgt", runPathExt)
+    Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+    heightData = modelDataArray.gh
+    heightData = heightData.metpy.quantify()
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([heightData.longitude.data]), (heightData.data.shape[0], 1))
+        latsToPlot = np.tile(heightData.latitude.data, (heightData.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = heightData.longitude
+        latsToPlot = heightData.latitude
+    if pressureLevel < 400:
+        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+120, 120)
+    else:
+        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+120, 60)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, heightData.data, levels=contourLevels, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
+    contourLabels = ax.clabel(contourmap, levels=contourLevels, inline=True, fontsize=10)
+    [label.set_rotation(0) for label in contourLabels]
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        if pressureLevel == 250:
+            addon = 22
+        elif pressureLevel == 500:
+            addon = 18
+        elif pressureLevel == 850:
+            addon = 26
+        productId = productTypeBase + addon
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return contourmap
+
 
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
@@ -438,6 +489,10 @@ if __name__ == "__main__":
     compositeReflectivityPath = path.join(inputPath, "refc.grib2")
     updraftHelicityPath = path.join(inputPath, "udh.grib2")
     aglReflectivityPath = path.join(inputPath, "refd.grib2")
+    heightsPath = path.join(inputPath, "heights.grib2")
+    tempsPath = path.join(inputPath, "temps.grib2")
+    dewpointPath = path.join(inputPath, "dwpt.grib2")
+    rhPath = path.join(inputPath, "rh.grib2")
     if path.exists(inputPath):
         if fieldToPlot == "t2m" and path.exists(sfcTempPath):
             sfcTempPlot(True)
@@ -467,3 +522,23 @@ if __name__ == "__main__":
                     staticSimDBZPlot("refdcomposite")
             else:
                 staticSimDBZPlot("refdcomposite")
+        if fieldToPlot == "heights" and path.exists(heightsPath):
+            [heightsPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
+        if fieldToPlot == "temps" and path.exists(tempsPath):
+            [tempsPlot(pressSfc, True) for pressSfc in [850]]
+        # if fieldToPlot == "dwpt" and path.exists(dewpointPath):
+        #     [dewpointPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
+        # if fieldToPlot == "rh" and path.exists(rhPath):
+        #     [rhPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
+        # if fieldToPlot == "500vort" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
+        #     vort500Plot(True)
+        # if fieldToPlot == "jetisotachs" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
+        #     jetIsotachsPlot(True)
+        # if fieldToPlot == "850temps" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath):
+        #     temps850Plot(True)
+        # if fieldToPlot == "700rh" and path.exists(sfcPressPath) and path.exists(sfcTempPath) and path.exists(heightsPath):
+        #     if path.exists(dewpointPath) or path.exists(rhPath):
+        #         rh700Plot(True)
+        # if fieldToPlot == "4pnl" and path.exists(sfcPressPath) and path.exists(sfcTempPath) and path.exists(heightsPath) and path.exists(tempsPath) and path.exists(windsAtHeightPath):
+        #     if path.exists(dewpointPath) or path.exists(rhPath):
+        #         fourPanelPlot(True)

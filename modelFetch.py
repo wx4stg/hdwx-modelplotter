@@ -19,7 +19,15 @@ euroVarList = {
     "sfcwind.grib2" : ["10u", "10v"],
     "sp.grib2" : ["msl"],
     "sfccomposite" : list(),
-    "winds.grib2" : ["u", "v"]
+    "winds.grib2" : ["u", "v"],
+    "heights.grib2" : ["gh"],
+    "temps.grib2" : ["t"],
+    "rh.grib2" : ["r"],
+    "500vort" : list(),
+    "jetisotachs" : list(),
+    "850temps" : list(),
+    "700rh" : list(),
+    "4pnl" : list()
 }
 ncepVarList = {
     "t2m.grib2" : "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 2m Temperature
@@ -30,8 +38,17 @@ ncepVarList = {
     "refc.grib2" : "&var_REFC=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # composite simulated reflectivity
     "udh.grib2" : "&lev_5000-2000_m_above_ground=on&var_MXUPHL=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # updraft helicity
     "refccomposite" : "",
-    "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F",
-    "refdcomposite" : ""
+    "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 1km AGL simulated reflectivity
+    "refdcomposite" : "",
+    "heights.grib2" : "&lev_1000_mb=on&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_HGT=on&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # geopotential height at pressure surface
+    "temps.grib2" : "&lev_850_mb=on&lev_700_mb=on&var_TMP=on&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # temperature at pressure surface
+    "dwpt.grib2" : "&lev_700_mb=on&lev_850_mb=on&var_DPT=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # dew point at pressure surface
+    "500vort" : "",
+    "jetisotachs" : "",
+    "850temps" : "",
+    "700rh" : "",
+    "4pnl" : ""
+
 }
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")

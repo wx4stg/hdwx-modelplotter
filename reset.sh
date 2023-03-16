@@ -3,7 +3,7 @@
 # Created 10 Janurary 2022 by Sam Gardner <stgardner4@tamu.edu>
 
 rm -rf output/
-rm -rf radarData/
+rm -rf modelData/
 rm downloaderlock-*
 rm plotter-is-reading
 rm plotterlock
