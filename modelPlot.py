@@ -3,25 +3,19 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path, listdir, remove, chmod
+from os import path, listdir, remove
 from pathlib import Path
 import xarray as xr
 from metpy import constants
-from metpy.plots import USCOUNTIES
-from metpy import calc as mpcalc
 import metpy
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 from matplotlib import pyplot as plt
 import numpy as np
 from datetime import datetime as dt, timedelta
-from pandas import Timestamp as pdtimestamp
-from matplotlib import image as mpimage
 from matplotlib import colors as pltcolors
 from scipy import ndimage
-import json
 import warnings
-from atomicwrites import atomic_write
 
 # modelPlot.py <model> <initialization> <fhour> <field to plot>
 modelName = sys.argv[1]
@@ -478,6 +472,63 @@ def heightsPlot(pressureLevel, standaloneFig, ax=None):
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
     return contourmap
 
+def tempsPlot(pressureLevel, standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "temps.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    if pressureLevel not in modelDataArray.isobaricInhPa.values:
+        return
+    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"temps", runPathExt)
+    Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+    tempsData = modelDataArray.t
+    tempsData = tempsData.metpy.quantify()
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([tempsData.longitude.data]), (tempsData.data.shape[0], 1))
+        latsToPlot = np.tile(tempsData.latitude.data, (tempsData.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = tempsData.longitude
+        latsToPlot = tempsData.latitude
+    
+
+
+    frozenColorMap = plt.cm.cool_r(np.linspace(0, 1, 25))
+    meltedColorMap = plt.cm.turbo(np.linspace(0.35, 1, 25))
+    all_colors = np.vstack((frozenColorMap, meltedColorMap))
+    temperatureColorMap = pltcolors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
+    temperatureNorm = pltcolors.TwoSlopeNorm(vcenter=0, vmin=-40, vmax=40)
+    levelsToContour = np.arange(-40, 40, 10)
+    tempsData = tempsData.data.to("degC")
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempsData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
+    ax.contour(lonsToPlot, latsToPlot, tempsData, levels=[0], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        if pressureLevel == 250:
+            addon = 22
+        elif pressureLevel == 500:
+            addon = 18
+        elif pressureLevel == 850:
+            addon = 26
+        productId = productTypeBase + addon
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+
+
+    return contourmap
 
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
