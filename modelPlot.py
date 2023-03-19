@@ -240,8 +240,9 @@ def mslpPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = mslpData.longitude
         latsToPlot = mslpData.latitude
-    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
-    contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1040, 2), inline=True, fontsize=10)
+    levelsToContour = np.arange((np.min(mslpData.data) // 2) * 2, np.max(mslpData.data)+2, 2)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=levelsToContour, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
+    contourLabels = ax.clabel(contourmap, levels=levelsToContour, inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
@@ -519,7 +520,7 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
     all_colors = np.vstack((frozenColorMap, meltedColorMap))
     temperatureColorMap = pltcolors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
     temperatureNorm = pltcolors.TwoSlopeNorm(vcenter=0, vmin=-40, vmax=40)
-    levelsToContour = np.arange(-40, 41, 10)
+    levelsToContour = np.arange(-40, 41, 5)
     tempsData = tempsData.data.to("degC")
     contourmap = ax.contourf(lonsToPlot, latsToPlot, tempsData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True, extend="both")
     ax.contour(lonsToPlot, latsToPlot, tempsData, levels=[0], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
