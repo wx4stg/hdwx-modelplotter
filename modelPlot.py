@@ -497,7 +497,8 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     if pressureLevel not in modelDataArray.isobaricInhPa.values:
         return
-    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    if "ecmwf" in modelName:
+        modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"temps", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -548,14 +549,16 @@ def rhPlot(pressureLevel, standaloneFig, ax=None):
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     if pressureLevel not in modelDataArray.isobaricInhPa.values:
         return
-    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    if "ecmwf" in modelName:
+        modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    modelDataArray = modelDataArray.metpy.quantify()
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"rh", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
     if "r" in modelDataArray.variables:
         rhData = modelDataArray.r
     elif "dpt" in modelDataArray.variables and "t" in modelDataArray.variables:
-        rhData = metpy.calc.relative_humidity_from_dewpoint(modelDataArray.dpt, modelDataArray.t)
+        rhData = metpy.calc.relative_humidity_from_dewpoint(modelDataArray.t, modelDataArray.dpt) * 100
     if standaloneFig:
         fig = plt.figure()
         px = 1/plt.rcParams["figure.dpi"]
