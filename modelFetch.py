@@ -40,9 +40,9 @@ ncepVarList = {
     "refccomposite" : "",
     "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 1km AGL simulated reflectivity
     "refdcomposite" : "",
-    "heights.grib2" : "&lev_1000_mb=on&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_HGT=on&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # geopotential height at pressure surface
-    "temps.grib2" : "&lev_850_mb=on&lev_700_mb=on&var_TMP=on&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # temperature at pressure surface
-    "dwpt.grib2" : "&lev_700_mb=on&lev_850_mb=on&var_DPT=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # dew point at pressure surface
+    "heights.grib2" : "&lev_1000_mb=on&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_HGT=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # geopotential height at pressure surface
+    "temps.grib2" : "&lev_850_mb=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # temperature at pressure surface
+    "rh.grib2" : "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # rel humidity at pressure surface
     "500vort" : "",
     "jetisotachs" : "",
     "850temps" : "",
@@ -111,6 +111,8 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
                 continue
         if "grib2" in filename:
             urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", reqVariable).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
+            if modelName == "hrrr" and reqVariable == "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F":
+                urlToFetch = urlToFetch.replace("&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", "&lev_700_mb=on&var_DPT=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F")
             modelData = requests.get(urlToFetch)
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:

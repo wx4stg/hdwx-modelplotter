@@ -8,9 +8,11 @@ from pathlib import Path
 import xarray as xr
 from metpy import constants
 import metpy
+from metpy import calc as mpcalc
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 from matplotlib import pyplot as plt
+from matplotlib.gridspec import GridSpec
 import numpy as np
 from datetime import datetime as dt, timedelta
 from matplotlib import colors as pltcolors
@@ -125,7 +127,7 @@ def sfcTempPlot(standaloneFig, ax=None):
     temperatureColorMap = pltcolors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
     temperatureNorm = pltcolors.TwoSlopeNorm(vcenter=32, vmin=-40, vmax=130)
     levelsToContour = np.sort(np.append(np.arange(-40, 120, 10), 32))
-    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True, extend="both")
     ax.contour(lonsToPlot, latsToPlot, tempData, levels=[32], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
     contourLabels = ax.clabel(contourmap, levels=np.arange(-40, 120, 20), inline=True, fontsize=10, colors="black")
     [label.set_rotation(0) for label in contourLabels]
@@ -278,7 +280,7 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 40), slice(None, None, 40))
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
-    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5)
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -448,10 +450,10 @@ def heightsPlot(pressureLevel, standaloneFig, ax=None):
         lonsToPlot = heightData.longitude
         latsToPlot = heightData.latitude
     if pressureLevel < 400:
-        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+120, 120)
+        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+121, 120)
     else:
-        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+120, 60)
-    contourmap = ax.contour(lonsToPlot, latsToPlot, heightData.data, levels=contourLevels, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
+        contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+61, 60)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, heightData.data, levels=contourLevels, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5, zorder=2)
     contourLabels = ax.clabel(contourmap, levels=contourLevels, inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
@@ -498,17 +500,14 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
     else:
         lonsToPlot = tempsData.longitude
         latsToPlot = tempsData.latitude
-    
-
-
     frozenColorMap = plt.cm.cool_r(np.linspace(0, 1, 25))
     meltedColorMap = plt.cm.turbo(np.linspace(0.35, 1, 25))
     all_colors = np.vstack((frozenColorMap, meltedColorMap))
     temperatureColorMap = pltcolors.LinearSegmentedColormap.from_list("temperatureColorMap", all_colors)
     temperatureNorm = pltcolors.TwoSlopeNorm(vcenter=0, vmin=-40, vmax=40)
-    levelsToContour = np.arange(-40, 40, 10)
+    levelsToContour = np.arange(-40, 41, 10)
     tempsData = tempsData.data.to("degC")
-    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempsData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, tempsData, levels=levelsToContour,  cmap=temperatureColorMap, norm=temperatureNorm, transform=ccrs.PlateCarree(), transform_first=True, extend="both")
     ax.contour(lonsToPlot, latsToPlot, tempsData, levels=[0], colors="red", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
@@ -516,19 +515,280 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
         fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
         plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
-        if pressureLevel == 250:
-            addon = 22
-        elif pressureLevel == 500:
-            addon = 18
-        elif pressureLevel == 850:
-            addon = 26
+        if pressureLevel == 850:
+            addon = 27
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
-
-
     return contourmap
+
+def rhPlot(pressureLevel, standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "rh.grib2")
+    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+    if pressureLevel not in modelDataArray.isobaricInhPa.values:
+        return
+    modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"rh", runPathExt)
+    Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+    if "r" in modelDataArray.variables:
+        rhData = modelDataArray.r
+    elif "dpt" in modelDataArray.variables and "t" in modelDataArray.variables:
+        rhData = metpy.calc.relative_humidity_from_dewpoint(modelDataArray.dpt, modelDataArray.t)
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([rhData.longitude.data]), (rhData.data.shape[0], 1))
+        latsToPlot = np.tile(rhData.latitude.data, (rhData.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = rhData.longitude
+        latsToPlot = rhData.latitude
+    levelsToContour = np.arange(60, 110, 10)
+    rhArr = np.array([[1, 185/255, 0, 1], [0, 1, 0, 1], [0, 200/255, 0, 1], [0, 139/255, 0, 1]])
+    rhcm = pltcolors.LinearSegmentedColormap.from_list("hdwx-humidity", rhArr)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, rhData.clip(0, 100), levels=levelsToContour,  cmap=rhcm, vmin=60, vmax=100, transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        if pressureLevel == 700:
+            addon = 29
+        productId = productTypeBase + addon
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return contourmap
+
+def vort500Plot(standaloneFig, ax=None):
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.LambertConformal())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    windsAtHeightPlot(500, False, ax=ax)
+    heightsPlot(500, False, ax=ax)
+    pathToRead = path.join(inputPath, "winds.grib2")
+    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=500)
+    uwind = modelDataArray.u
+    uwind = uwind.metpy.quantify()
+    uwind = uwind.metpy.convert_units("m/s")
+    vwind = modelDataArray.v
+    vwind = vwind.metpy.quantify()
+    vwind = vwind.metpy.convert_units("m/s")
+    vortData = mpcalc.absolute_vorticity(uwind, vwind)
+    posVortMap = plt.cm.plasma_r(np.linspace(0, 1, 180))
+    neutralVortMap = np.array([[1, 1, 1, 1]]*90)
+    negVortMap = plt.cm.cool_r(np.linspace(0.4, 1, 90))
+    vortArr = np.vstack((negVortMap, neutralVortMap, posVortMap))
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([vortData.longitude.data]), (vortData.data.shape[0], 1))
+        latsToPlot = np.tile(vortData.latitude.data, (vortData.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = vortData.longitude
+        latsToPlot = vortData.latitude
+    vortcm = pltcolors.LinearSegmentedColormap.from_list("hdwx-vorticity", vortArr)
+    vortmap = ax.contourf(lonsToPlot, latsToPlot, vortData.data, levels=np.arange(-.00009, .00027, .00003), cmap=vortcm, transform=ccrs.PlateCarree(), transform_first=True, extend="both", zorder=1)
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    if standaloneFig:
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n 500 hPa Heights, Winds, Absolute Vorticity", validTime, fhour=fhour, notice=None, plotHandle=vortmap, colorbarLabel=r"$\frac{1}{s}$")
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        staticSavePath = path.join(basePath, "output", "products", modelName, "500staticvort", runPathExt)
+        Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
+        gisInfo = ["0,0", "0,0"]
+        productId = productTypeBase + 20
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return ax, vortmap
+
+def jetIsotachsPlot(standaloneFig, ax=None):
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.LambertConformal())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    heightsPlot(250, False, ax=ax)
+    windsAtHeightPlot(250, False, ax=ax)
+    pathToRead = path.join(inputPath, "winds.grib2")
+    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=250)
+    uwind = modelDataArray.u
+    uwind = uwind.metpy.quantify()
+    uwind = uwind.metpy.convert_units("kt")
+    vwind = modelDataArray.v
+    vwind = vwind.metpy.quantify()
+    vwind = vwind.metpy.convert_units("kt")
+    speed = mpcalc.wind_speed(uwind, vwind)
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([speed.longitude.data]), (speed.shape[0], 1))
+        latsToPlot = np.tile(speed.latitude.data, (speed.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = speed.longitude
+        latsToPlot = speed.latitude
+    jetmap = ax.contourf(lonsToPlot, latsToPlot, speed, cmap="plasma_r", levels=np.arange(70, 171, 20), transform=ccrs.PlateCarree(), transform_first=True, extend="max", zorder=1)
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    if standaloneFig:
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n 250 hPa Heights, Winds, Isotachs", validTime, fhour=fhour, notice=None, plotHandle=jetmap, colorbarLabel="kt")
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        staticSavePath = path.join(basePath, "output", "products", modelName, "250staticjet", runPathExt)
+        Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
+        gisInfo = ["0,0", "0,0"]
+        productId = productTypeBase + 24
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return ax, jetmap
+
+def temps850Plot(standaloneFig, ax=None):
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.LambertConformal())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    heightsPlot(850, False, ax=ax)
+    windsAtHeightPlot(850, False, ax=ax)
+    tempsHandle = tempsPlot(850, False, ax=ax)
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    if standaloneFig:
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n 850 hPa Heights, Winds, Temperatures", validTime, fhour=fhour, notice=None, plotHandle=tempsHandle, colorbarLabel="°C")
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        staticSavePath = path.join(basePath, "output", "products", modelName, "850statictemps", runPathExt)
+        Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
+        gisInfo = ["0,0", "0,0"]
+        productId = productTypeBase + 24
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return ax, tempsHandle
+
+def rh700Plot(standaloneFig, ax=None):
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.LambertConformal())
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    mslpPlot(False, ax=ax)
+    rhHandle = rhPlot(700, False, ax=ax)
+    pathToRead = path.join(inputPath, "heights.grib2")
+    heightsData = xr.open_dataset(pathToRead, engine="cfgrib")
+    oneThousandHeights = heightsData.sel(isobaricInhPa=1000).metpy.quantify()
+    fiveHundredHeights = heightsData.sel(isobaricInhPa=500).metpy.quantify()
+    thicknessData = fiveHundredHeights.gh - oneThousandHeights.gh
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([thicknessData.longitude.data]), (thicknessData.shape[0], 1))
+        latsToPlot = np.tile(thicknessData.latitude.data, (thicknessData.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = thicknessData.longitude
+        latsToPlot = thicknessData.latitude
+    coldLevels = np.arange(5340, np.min(thicknessData.data.magnitude)-.01, -60)[::-1]
+    hotLevels = np.arange(5460, np.max(thicknessData.data.magnitude)+.01, 60)
+    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=2, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    coldLabels = ax.clabel(coldContours, levels=coldLevels, inline=True, fontsize=10)
+    [label.set_rotation(0) for label in coldLabels]
+    hotLabels = ax.clabel(hotContours, levels=hotLevels, inline=True, fontsize=10)
+    [label.set_rotation(0) for label in hotLabels]
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    if standaloneFig:
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n 700 hPa RH, MSLP, 1000->500 hPa Thicknesses", validTime, fhour=fhour, notice=None, plotHandle=rhHandle, colorbarLabel="%")
+        runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+        staticSavePath = path.join(basePath, "output", "products", modelName, "700staticrh", runPathExt)
+        Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
+        gisInfo = ["0,0", "0,0"]
+        productId = productTypeBase + 31
+        if hasHelpers:
+            HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    return ax, rhHandle
+
+def fourPanelPlot():
+    fig = plt.figure()
+    px = 1/plt.rcParams["figure.dpi"]
+    fig.set_size_inches(1920*px, 1080*px)
+    gs = GridSpec(3, 4, figure=fig, width_ratios=[0.01, 1, 1, 0.01], height_ratios=[1, 1, 0.1])
+    gs.update(left=75/1920,right=1-(75/1920), top=.9925, bottom=0.01, wspace=0, hspace=0.02)
+    cax1 = fig.add_subplot(gs[0, 0])
+    ax1 = fig.add_subplot(gs[0, 1], projection=ccrs.LambertConformal())
+    ax2 = fig.add_subplot(gs[0, 2], projection=ccrs.LambertConformal())
+    cax2 = fig.add_subplot(gs[0, 3])
+    cax3 = fig.add_subplot(gs[1, 0])
+    ax3 = fig.add_subplot(gs[1, 1], projection=ccrs.LambertConformal())
+    ax4 = fig.add_subplot(gs[1, 2], projection=ccrs.LambertConformal())
+    cax4 = fig.add_subplot(gs[1, 3])
+    lax = fig.add_axes([0,0,1/5,.06])
+    lax.set_aspect(2821/11071, anchor="SE")
+    tax = fig.add_axes([1/3,0,1/4,.11])
+    [ax.set_extent(axExtent, crs=ccrs.PlateCarree()) for ax in [ax1, ax2, ax3, ax4]]
+    ax1, vortHandle = vort500Plot(False, ax=ax1)
+    ax1.set_title("500 hPa Heights, Winds, Absolute Vorticity")
+    ax2, jetHandle = jetIsotachsPlot(False, ax=ax2)
+    ax2.set_title("250 hPa Heights, Winds, Isotachs")
+    ax3, tempHandle = temps850Plot(False, ax=ax3)
+    ax3.set_title("850 hPa Heights, Winds, Temperatures")
+    ax4, rhHandle = rh700Plot(False, ax=ax4)
+    ax4.set_title("700 hPa RH, MSLP, 1000->500 hPa Thicknesses")
+
+    cb1 = fig.colorbar(vortHandle, cax=cax1, orientation="vertical", label="1/s", format="%.0e")
+    newticks = []
+    for tick in cb1.get_ticks():
+        if np.abs(tick) > 1e-10:
+            newticks.append(tick)
+        else:
+            newticks.append(0)
+    cb1.set_ticks(newticks)
+    cb1.ax.yaxis.set_ticks_position("left")
+    cb1.ax.yaxis.set_label_position("left")
+    fig.colorbar(jetHandle, cax=cax2, orientation="vertical", label="kt")
+    cb3 = fig.colorbar(tempHandle, cax=cax3, orientation="vertical", label="°C")
+    cb3.ax.yaxis.set_ticks_position("left")
+    cb3.ax.yaxis.set_label_position("left")
+    fig.colorbar(rhHandle, cax=cax4, orientation="vertical", label="%")
+
+    validTime = initDateTime + timedelta(hours=fhour)
+    if hasHelpers:
+        HDWX_helpers.dressImage(fig, None, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\nForecast 4-Panel", validTime, fhour=fhour, notice=None, plotHandle=None, tax=tax, lax=lax)
+    tax.set_position([(0.5-tax.get_position().width/2), tax.get_position().y0, tax.get_position().width, tax.get_position().height])
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    staticSavePath = path.join(basePath, "output", "products", modelName, "4pnl", runPathExt)
+    Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+    fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
+    gisInfo = ["0,0", "0,0"]
+    productId = productTypeBase + 32
+    if hasHelpers:
+        HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    fig.savefig("test.png")
+
 
 if __name__ == "__main__":
     writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
@@ -577,19 +837,15 @@ if __name__ == "__main__":
             [heightsPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
         if fieldToPlot == "temps" and path.exists(tempsPath):
             [tempsPlot(pressSfc, True) for pressSfc in [850]]
-        # if fieldToPlot == "dwpt" and path.exists(dewpointPath):
-        #     [dewpointPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
-        # if fieldToPlot == "rh" and path.exists(rhPath):
-        #     [rhPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
-        # if fieldToPlot == "500vort" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
-        #     vort500Plot(True)
-        # if fieldToPlot == "jetisotachs" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
-        #     jetIsotachsPlot(True)
-        # if fieldToPlot == "850temps" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath):
-        #     temps850Plot(True)
-        # if fieldToPlot == "700rh" and path.exists(sfcPressPath) and path.exists(sfcTempPath) and path.exists(heightsPath):
-        #     if path.exists(dewpointPath) or path.exists(rhPath):
-        #         rh700Plot(True)
-        # if fieldToPlot == "4pnl" and path.exists(sfcPressPath) and path.exists(sfcTempPath) and path.exists(heightsPath) and path.exists(tempsPath) and path.exists(windsAtHeightPath):
-        #     if path.exists(dewpointPath) or path.exists(rhPath):
-        #         fourPanelPlot(True)
+        if fieldToPlot == "rh" and path.exists(rhPath):
+            [rhPlot(pressSfc, True) for pressSfc in [700]]
+        if fieldToPlot == "500vort" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
+            vort500Plot(True)
+        if fieldToPlot == "jetisotachs" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
+            jetIsotachsPlot(True)
+        if fieldToPlot == "850temps" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath):
+            temps850Plot(True)
+        if fieldToPlot == "700rh" and path.exists(sfcPressPath) and path.exists(heightsPath) and path.exists(rhPath):
+            rh700Plot(True)
+        if fieldToPlot == "4pnl" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath) and path.exists(sfcPressPath) and path.exists(rhPath):
+            fourPanelPlot()
