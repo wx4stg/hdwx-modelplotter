@@ -146,7 +146,7 @@ if __name__ == "__main__":
         productTypeBase = 300
         longRuns = list(range(0, 19, 6))
         shortRuns = list()
-        fHoursLongRun = list(range(0, 120, 1)) + list(range(120, 385, 3))
+        fHoursLongRun = list(range(0, 385, 3))
         fHoursShortRun = list()
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t<MODEL_INIT_TIME>z.pgrb2.0p25.f<FHOUR_LONG><REQUESTED_VARIABLE>gfs.<MODEL_INIT_DATE>%2F<MODEL_INIT_TIME>%2Fatmos"
     elif modelName == "nam":
