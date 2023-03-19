@@ -90,12 +90,14 @@ def staticSFCTempWindMSLPPlot():
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTWndMSLP/"+runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-    fig.savefig(staticSavePath+"/f"+str(fhour)+".png", bbox_inches="tight")
-    plt.close(fig)
     gisInfo = ["0,0", "0,0"]
     productId = productTypeBase + 3
     if hasHelpers:
+        HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
         HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    else:
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
 
 def sfcTempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
@@ -104,7 +106,7 @@ def sfcTempPlot(standaloneFig, ax=None):
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
-    gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcT/"), runPathExt)
+    gisSavePath = path.join(basePath, "output/gisproducts/"+modelName+"/sfcT/", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
     tempData = modelDataArray["t2m"]
     tempData = tempData.metpy.quantify()
@@ -135,12 +137,14 @@ def sfcTempPlot(standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productTypeBase, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return contourmap
 
 def sfcWindPlot(standaloneFig, ax=None):
@@ -177,14 +181,16 @@ def sfcWindPlot(standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 1
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
-        return windbarbs
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+    return windbarbs
 
 def mslpPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sp.grib2")
@@ -193,7 +199,7 @@ def mslpPlot(standaloneFig, ax=None):
         warnings.filterwarnings("ignore")
         modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
-    gisSavePath = path.join(path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/"), runPathExt)
+    gisSavePath = path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
     if modelName == "ecmwf-hres":
         mslpData = modelDataArray["msl"]
@@ -234,19 +240,20 @@ def mslpPlot(standaloneFig, ax=None):
         lonsToPlot = mslpData.longitude
         latsToPlot = mslpData.latitude
     contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=np.arange(800, 1200, 2), colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
-    if standaloneFig:
-        set_size(1920*px, 1080*px, ax=ax)
-        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
     contourLabels = ax.clabel(contourmap, levels=np.arange(800, 1040, 2), inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 2
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return contourmap
 
 def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
@@ -284,8 +291,6 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         if pressureLevel == 250:
             addon = 21
@@ -296,7 +301,11 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return windbarbs
 
 def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
@@ -335,8 +344,6 @@ def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         gisSavePath = path.join(basePath, "output", "gisproducts", modelName, prodString, runPathExt)
         Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         if prodString == "simrefc":
             addon = 8
@@ -345,7 +352,11 @@ def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return rdr
 
 def updraftHelicityPlot(standaloneFig, ax=None):
@@ -376,13 +387,15 @@ def updraftHelicityPlot(standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         gisSavePath = path.join(basePath, "output", "gisproducts", modelName, "udhelicity", runPathExt)
         Path(gisSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         productId = productTypeBase + 9
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
 
 def staticSimDBZPlot(compOrAGL):
     fig = plt.figure()
@@ -416,12 +429,14 @@ def staticSimDBZPlot(compOrAGL):
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output", "products", modelName, compOrAGL, runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-    fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-    plt.close(fig)
     gisInfo = ["0,0", "0,0"]
     productId = productTypeBase + addon
     if hasHelpers:
+        HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
         HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    else:
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
 
 def heightsPlot(pressureLevel, standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "heights.grib2")
@@ -459,8 +474,6 @@ def heightsPlot(pressureLevel, standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         if pressureLevel == 250:
             addon = 22
@@ -471,7 +484,11 @@ def heightsPlot(pressureLevel, standaloneFig, ax=None):
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return contourmap
 
 def tempsPlot(pressureLevel, standaloneFig, ax=None):
@@ -512,15 +529,17 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         if pressureLevel == 850:
             addon = 27
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return contourmap
 
 def rhPlot(pressureLevel, standaloneFig, ax=None):
@@ -558,15 +577,17 @@ def rhPlot(pressureLevel, standaloneFig, ax=None):
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
-        fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
-        plt.close(fig)
         gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
         if pressureLevel == 700:
             addon = 29
         productId = productTypeBase + addon
         validTime = initDateTime + timedelta(hours=fhour)
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
     return contourmap
 
 def vort500Plot(standaloneFig, ax=None):
@@ -608,12 +629,14 @@ def vort500Plot(standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         staticSavePath = path.join(basePath, "output", "products", modelName, "500staticvort", runPathExt)
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-        plt.close(fig)
         gisInfo = ["0,0", "0,0"]
         productId = productTypeBase + 20
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
     return ax, vortmap
 
 def jetIsotachsPlot(standaloneFig, ax=None):
@@ -650,12 +673,14 @@ def jetIsotachsPlot(standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         staticSavePath = path.join(basePath, "output", "products", modelName, "250staticjet", runPathExt)
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-        plt.close(fig)
         gisInfo = ["0,0", "0,0"]
         productId = productTypeBase + 24
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
     return ax, jetmap
 
 def temps850Plot(standaloneFig, ax=None):
@@ -677,12 +702,13 @@ def temps850Plot(standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         staticSavePath = path.join(basePath, "output", "products", modelName, "850statictemps", runPathExt)
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-        plt.close(fig)
         gisInfo = ["0,0", "0,0"]
         productId = productTypeBase + 24
         if hasHelpers:
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
     return ax, tempsHandle
 
 def rh700Plot(standaloneFig, ax=None):
@@ -723,12 +749,14 @@ def rh700Plot(standaloneFig, ax=None):
         runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
         staticSavePath = path.join(basePath, "output", "products", modelName, "700staticrh", runPathExt)
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-        plt.close(fig)
         gisInfo = ["0,0", "0,0"]
         productId = productTypeBase + 31
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        plt.close(fig)
     return ax, rhHandle
 
 def fourPanelPlot():
@@ -781,13 +809,14 @@ def fourPanelPlot():
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output", "products", modelName, "4pnl", runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
-    fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
-    plt.close(fig)
     gisInfo = ["0,0", "0,0"]
     productId = productTypeBase + 32
     if hasHelpers:
+        HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
         HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
-    fig.savefig("test.png")
+    else:
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
 
 
 if __name__ == "__main__":
