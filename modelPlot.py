@@ -17,6 +17,7 @@ import numpy as np
 from datetime import datetime as dt, timedelta
 from matplotlib import colors as pltcolors
 from scipy import ndimage
+import pyart
 import warnings
 
 # modelPlot.py <model> <initialization> <fhour> <field to plot>
@@ -322,12 +323,8 @@ def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
         simDBZ = modelDataArray.refd
     else:
         return
-    specR = plt.cm.Spectral_r(np.linspace(0, 1, 200))
-    pink = plt.cm.PiYG(np.linspace(0, 0.25, 40))
-    purple = plt.cm.PRGn_r(np.linspace(0.75, 1, 40))
-    cArr = np.vstack((specR, pink, purple))
-    cmap = pltcolors.LinearSegmentedColormap.from_list("cvd-reflectivity", cArr)
-    vmin=10
+    cmap = "pyart_ChaseSpectral"
+    vmin=-10
     vmax=80
     dataMask = np.where(np.logical_and(simDBZ.data>=10, simDBZ.data<=80), 0, 1)
     if standaloneFig:
