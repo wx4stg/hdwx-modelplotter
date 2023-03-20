@@ -706,6 +706,7 @@ def temps850Plot(standaloneFig, ax=None):
         gisInfo = ["0,0", "0,0"]
         productId = productTypeBase + 24
         if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
         else:
             fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
