@@ -240,7 +240,7 @@ def mslpPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = mslpData.longitude
         latsToPlot = mslpData.latitude
-    levelsToContour = np.arange((np.min(mslpData.data) // 2) * 2, np.max(mslpData.data)+2, 2)
+    levelsToContour = np.arange((np.nanmin(mslpData.data) // 2) * 2, np.nanmax(mslpData.data)+2, 2)
     contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=levelsToContour, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
     contourLabels = ax.clabel(contourmap, levels=levelsToContour, inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
@@ -281,14 +281,14 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
         ax = plt.axes(projection=ccrs.epsg(3857))
         ax.set_extent(axExtent, crs=ccrs.PlateCarree())
     if modelName == "gfs" or modelName == "ecmwf-hres":
-        spatialLimit = slice(None, None, 5)
-        dataLimit = (slice(None, None, 5), slice(None, None, 5))
-    elif modelName == "nam":
-        spatialLimit = (slice(None, None, 10), slice(None, None, 10))
+        spatialLimit = slice(None, None, 10)
         dataLimit = (slice(None, None, 10), slice(None, None, 10))
+    elif modelName == "nam":
+        spatialLimit = (slice(None, None, 20), slice(None, None, 20))
+        dataLimit = (slice(None, None, 20), slice(None, None, 20))
     elif modelName == "namnest" or modelName == "hrrr":
-        spatialLimit = (slice(None, None, 40), slice(None, None, 40))
-        dataLimit = (slice(None, None, 40), slice(None, None, 40))
+        spatialLimit = (slice(None, None, 80), slice(None, None, 80))
+        dataLimit = (slice(None, None, 80), slice(None, None, 80))
     windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
@@ -376,7 +376,7 @@ def updraftHelicityPlot(standaloneFig, ax=None):
     else:
         lonsToPlot = udhel.longitude
         latsToPlot = udhel.latitude
-    if np.max(udhel.data) > 50:
+    if np.nanmax(udhel.data) > 50:
         ax.contourf(lonsToPlot, latsToPlot, udhel, levels=[50, 999999], cmap="Greys", vmin=0, vmax=100, transform=ccrs.PlateCarree(), zorder=2, transform_first=True, alpha=0.5)
         ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=0.5)
     if standaloneFig:
@@ -620,7 +620,7 @@ def vort500Plot(standaloneFig, ax=None):
         lonsToPlot = vortData.longitude
         latsToPlot = vortData.latitude
     vortcm = pltcolors.LinearSegmentedColormap.from_list("hdwx-vorticity", vortArr)
-    vortmap = ax.contourf(lonsToPlot, latsToPlot, vortData.data, levels=np.arange(-.00009, .00027, .00003), cmap=vortcm, transform=ccrs.PlateCarree(), transform_first=True, extend="both", zorder=1)
+    vortmap = ax.contourf(lonsToPlot, latsToPlot, vortData.data, levels=np.arange(-.00009, .00028, .00003), cmap=vortcm, transform=ccrs.PlateCarree(), transform_first=True, extend="both", zorder=1)
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     if standaloneFig:
@@ -732,8 +732,8 @@ def rh700Plot(standaloneFig, ax=None):
     else:
         lonsToPlot = thicknessData.longitude
         latsToPlot = thicknessData.latitude
-    coldLevels = np.arange(5340, np.min(thicknessData.data.magnitude)-.01, -60)[::-1]
-    hotLevels = np.arange(5460, np.max(thicknessData.data.magnitude)+.01, 60)
+    coldLevels = np.arange(5340, np.nanmin(thicknessData.data.magnitude)-.01, -60)[::-1]
+    hotLevels = np.arange(5460, np.nanmax(thicknessData.data.magnitude)+.01, 60)
     coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=2, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
