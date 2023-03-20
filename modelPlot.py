@@ -704,7 +704,7 @@ def temps850Plot(standaloneFig, ax=None):
         staticSavePath = path.join(basePath, "output", "products", modelName, "850statictemps", runPathExt)
         Path(staticSavePath).mkdir(parents=True, exist_ok=True)
         gisInfo = ["0,0", "0,0"]
-        productId = productTypeBase + 24
+        productId = productTypeBase + 28
         if hasHelpers:
             HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
             HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
