@@ -30,19 +30,19 @@ euroVarList = {
     "4pnl" : list()
 }
 ncepVarList = {
-    "t2m.grib2" : "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 2m Temperature
-    "sfcwind.grib2" : "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 10m u and v
-    "sp.grib2" : "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # surface pressure and orography
+    "t2m.grib2" : "&lev_2_m_above_ground=on&var_TMP=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # 2m Temperature
+    "sfcwind.grib2" : "&lev_10_m_above_ground=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # 10m u and v
+    "sp.grib2" : "&lev_surface=on&var_HGT=on&var_PRES=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # surface pressure and orography
     "sfccomposite" : "",
-    "winds.grib2" : "&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # winds at pressure surface
-    "refc.grib2" : "&var_REFC=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # composite simulated reflectivity
-    "udh.grib2" : "&lev_5000-2000_m_above_ground=on&var_MXUPHL=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # updraft helicity
+    "winds.grib2" : "&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_UGRD=on&var_VGRD=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # winds at pressure surface
+    "refc.grib2" : "&var_REFC=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # composite simulated reflectivity
+    "udh.grib2" : "&lev_5000-2000_m_above_ground=on&var_MXUPHL=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # updraft helicity
     "refccomposite" : "",
-    "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # 1km AGL simulated reflectivity
+    "refd.grib2" : "&lev_1000_m_above_ground=on&var_REFD=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # 1km AGL simulated reflectivity
     "refdcomposite" : "",
-    "heights.grib2" : "&lev_1000_mb=on&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_HGT=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # geopotential height at pressure surface
-    "temps.grib2" : "&lev_850_mb=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # temperature at pressure surface
-    "rh.grib2" : "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", # rel humidity at pressure surface
+    "heights.grib2" : "&lev_1000_mb=on&lev_250_mb=on&lev_500_mb=on&lev_850_mb=on&var_HGT=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # geopotential height at pressure surface
+    "temps.grib2" : "&lev_850_mb=on&var_TMP=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # temperature at pressure surface
+    "rh.grib2" : "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", # rel humidity at pressure surface
     "500vort" : "",
     "jetisotachs" : "",
     "850temps" : "",
@@ -111,8 +111,8 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
                 continue
         if "grib2" in filename:
             urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", reqVariable).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
-            if modelName == "hrrr" and reqVariable == "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F":
-                urlToFetch = urlToFetch.replace("&lev_700_mb=on&var_RH=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F", "&lev_700_mb=on&var_DPT=on&var_TMP=on&subregion=&leftlon=-130&rightlon=-60&toplat=50&bottomlat=20&dir=%2F")
+            if modelName == "hrrr" and reqVariable == "&lev_700_mb=on&var_RH=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F":
+                urlToFetch = urlToFetch.replace("&lev_700_mb=on&var_RH=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F", "&lev_700_mb=on&var_DPT=on&var_TMP=on&subregion=&leftlon=-144.5&rightlon=-44.5&toplat=54.5&bottomlat=14.5&dir=%2F")
             modelData = requests.get(urlToFetch)
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:
