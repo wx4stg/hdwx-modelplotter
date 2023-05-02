@@ -603,6 +603,8 @@ def vort500Plot(standaloneFig, ax=None):
     heightsPlot(500, False, ax=ax)
     pathToRead = path.join(inputPath, "winds.grib2")
     modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=500)
+    if modelName == "namnest":
+        modelDataArray = modelDataArray.coarsen(y=5, x=5, boundary="trim").mean()
     uwind = modelDataArray.u
     uwind = uwind.metpy.quantify()
     uwind = uwind.metpy.convert_units("m/s")
