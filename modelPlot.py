@@ -736,9 +736,9 @@ def rh700Plot(standaloneFig, ax=None):
         latsToPlot = thicknessData.latitude
     coldLevels = np.arange(5340, np.nanmin(thicknessData.data.magnitude)-.01, -60)[::-1]
     hotLevels = np.arange(5460, np.nanmax(thicknessData.data.magnitude)+.01, 60)
-    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, linestyles="dashed", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=2, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
-    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, linestyles="dashed", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     coldLabels = ax.clabel(coldContours, levels=coldLevels, inline=True, fontsize=10)
     [label.set_rotation(0) for label in coldLabels]
     hotLabels = ax.clabel(hotContours, levels=hotLevels, inline=True, fontsize=10)
