@@ -551,6 +551,7 @@ def rhPlot(pressureLevel, standaloneFig, ax=None):
         return
     if "ecmwf" in modelName:
         modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
+        modelDataArray = modelDataArray.sel(latitude=slice(54.5, 14.2), longitude=slice(-144.5, -44.5))
     modelDataArray = modelDataArray.metpy.quantify()
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"rh", runPathExt)
@@ -574,7 +575,7 @@ def rhPlot(pressureLevel, standaloneFig, ax=None):
     levelsToContour = np.arange(60, 110, 10)
     rhArr = np.array([[1, 185/255, 0, 1], [0, 1, 0, 1], [0, 200/255, 0, 1], [0, 139/255, 0, 1]])
     rhcm = pltcolors.LinearSegmentedColormap.from_list("hdwx-humidity", rhArr)
-    contourmap = ax.contourf(lonsToPlot, latsToPlot, rhData.clip(0, 100), levels=levelsToContour,  cmap=rhcm, vmin=60, vmax=100, transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, rhData.data.clip(0,100), levels=levelsToContour,  cmap=rhcm, vmin=60, vmax=100, transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -735,9 +736,9 @@ def rh700Plot(standaloneFig, ax=None):
         latsToPlot = thicknessData.latitude
     coldLevels = np.arange(5340, np.nanmin(thicknessData.data.magnitude)-.01, -60)[::-1]
     hotLevels = np.arange(5460, np.nanmax(thicknessData.data.magnitude)+.01, 60)
-    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, linestyles="dashed", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=2, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
-    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, linestyles="dashed", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     coldLabels = ax.clabel(coldContours, levels=coldLevels, inline=True, fontsize=10)
     [label.set_rotation(0) for label in coldLabels]
     hotLabels = ax.clabel(hotContours, levels=hotLevels, inline=True, fontsize=10)
