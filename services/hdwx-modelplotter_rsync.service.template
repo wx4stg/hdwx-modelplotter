@@ -1,0 +1,14 @@
+[Unit]
+Description=hdwx-modelplotter_rsync
+PartOf=hdwx.target
+
+[Service]
+ExecStart=rsync -ulrH ./output/. $targetDir --exclude=productTypes/ --exclude="*.tmp"
+Restart=always
+RestartSec=30
+WorkingDirectory=$pathToClone/hdwx-modelplotter/
+User=$myUsername
+SyslogIdentifier=hdwx-modelplotter_rsync
+
+[Install]
+WantedBy=hdwx.target

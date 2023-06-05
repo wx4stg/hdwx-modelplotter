@@ -1,0 +1,14 @@
+[Unit]
+Description=hdwx-modelplotter_nam
+PartOf=hdwx.target
+
+[Service]
+ExecStart=$pathToPython modelFetch.py nam
+Restart=always
+RestartSec=30
+WorkingDirectory=$pathToClone/hdwx-modelplotter/
+User=$myUsername
+SyslogIdentifier=hdwx-modelplotter_nam
+
+[Install]
+WantedBy=hdwx.target

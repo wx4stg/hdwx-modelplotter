@@ -46,20 +46,6 @@ elif modelName == "ecmwf-hres":
 else:
     raise Exception("<model> must be 'gfs', 'nam', 'namnest', 'hrrr', or 'ecmwf-hres'")
 
-def writeToStatus(stringToWrite):
-    print(stringToWrite)
-    stringToWrite = stringToWrite+"\n"
-    if path.exists(path.join(basePath, "status.txt")):
-        currentStatusFile = open(path.join(basePath, "status.txt"), "r")
-        currentStr = open(path.join(basePath, "status.txt"), "r").read()
-        currentStatusFile.close()
-    else:
-        currentStr = ""
-    if stringToWrite not in currentStr:
-        with open(path.join(basePath, "status.txt"), "a") as statw:
-            statw.write(stringToWrite)
-            statw.close()
-
 def set_size(w,h, ax=None):
     if not ax: ax=plt.gca()
     l = ax.figure.subplotpars.left
@@ -825,7 +811,7 @@ def fourPanelPlot():
 
 
 if __name__ == "__main__":
-    writeToStatus(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
+    print(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
     inputPath = path.join(basePath, "modelData/"+modelName+"/"+dt.strftime(initDateTime, "%Y%m%d")+"/"+dt.strftime(initDateTime, "%H")+"/"+str(fhour))
     sfcTempPath = path.join(inputPath, "t2m.grib2")
     sfcWindsPath = path.join(inputPath, "sfcwind.grib2")

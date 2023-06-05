@@ -1,0 +1,14 @@
+[Unit]
+Description=hdwx-modelplotter_ecmwf-hres
+PartOf=hdwx.target
+
+[Service]
+ExecStart=$pathToPython modelFetch.py ecmwf-hres
+Restart=always
+RestartSec=30
+WorkingDirectory=$pathToClone/hdwx-modelplotter/
+User=$myUsername
+SyslogIdentifier=hdwx-modelplotter_ecmwf-hres
+
+[Install]
+WantedBy=hdwx.target

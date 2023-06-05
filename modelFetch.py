@@ -4,13 +4,13 @@
 
 import sys
 from datetime import datetime as dt, timedelta
-from os import path, remove
+from os import path
 import json
 import requests
 from pathlib import Path
 import sys
 from ecmwf.opendata import Client
-from time import sleep
+import subprocess
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
 modelName = sys.argv[1]
@@ -52,22 +52,6 @@ ncepVarList = {
 }
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")
-def writeToCmd(stringToWrite):
-    while path.exists(path.join(basePath, "plotter-is-reading")):
-        sleep(.01)
-    with open(path.join(basePath, "plotcmds.txt"), "a") as cmdw:
-        cmdw.write(stringToWrite)
-        cmdw.close()
-
-def deleteLockOnCrash(exceptionType, exceptionVal, traceback):
-    remove(path.join(basePath, path.join(basePath, "downloaderlock-"+modelName+".txt")))
-
-def writeToStatus(stringToWrite):
-    print(stringToWrite)
-    stringToWrite = stringToWrite+"\n"
-    with open(path.join(basePath, "status.txt"), "a") as statw:
-        statw.write(stringToWrite)
-        statw.close()
 
 def fetchEuroModel(initRun, fHour, outputDir):
     if modelName == "ecmwf-hres":
@@ -95,10 +79,10 @@ def fetchEuroModel(initRun, fHour, outputDir):
             except Exception as e:
                 print(str(e))
                 return False
-            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
         else:
             resDT = initRun
-            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
     if resDT == initRun:
         return True
 
@@ -117,31 +101,15 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:
                     f.write(modelData.content)
-                writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+                subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
             else:
                 return False
         else:
-            writeToCmd(sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+initRun.strftime("%Y%m%d%H%M")+" "+str(fHour)+" "+filename.replace(".grib2", "")+"\n")
+            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
     return True
 
 if __name__ == "__main__":
-    sys.excepthook = deleteLockOnCrash
-    if path.exists(path.join(basePath, "downloaderlock-"+modelName+".txt")):
-        writeToStatus("Downloader is locked for model "+modelName+", goodbye")
-        exit()
-    else:
-        with open(path.join(basePath, "downloaderlock-"+modelName+".txt"), "a") as lockWrite:
-            lockWrite.write(dt.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
-    writeToStatus("Statring download routine for model "+modelName)
-    if path.exists(path.join(basePath, "firstPlotDT.txt")):
-        readFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "r")
-        firstPlotTime = dt.strptime(readFirstPlotFile.read(), "%Y%m%d%H%M")
-        readFirstPlotFile.close()
-    else:
-        firstPlotTime = dt.utcnow()
-        writeFirstPlotFile = open(path.join(basePath, "firstPlotDT.txt"), "w")
-        writeFirstPlotFile.write(firstPlotTime.strftime("%Y%m%d%H%M"))
-        writeFirstPlotFile.close()
+    print("Statring download routine for model "+modelName)
     if modelName == "gfs":
         productTypeBase = 300
         longRuns = list(range(0, 19, 6))
@@ -176,20 +144,18 @@ if __name__ == "__main__":
         shortRuns = [hour for hour in list(range(0, 19, 6)) if hour not in longRuns]
         fHoursLongRun = list(range(0, 144, 3)) + list(range(144, 241, 6))
         fHoursShortRun = list(range(0, 91, 3))
-    today = dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    yesterday = today - timedelta(days=1)
+    dateInt = int(dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     runsAndFHours = dict()
-    for dateInt in [int(yesterday.strftime("%Y%m%d0000")), int(today.strftime("%Y%m%d0000"))]:
-        for longRun in longRuns:
-            dtKey = dateInt + (longRun * 100)
-            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
-            if dtKeyDt < dt.utcnow() and dtKeyDt > firstPlotTime:
-                runsAndFHours[dtKey] = fHoursLongRun
-        for shortRun in shortRuns:
-            dtKey = dateInt + (shortRun * 100)
-            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
-            if dtKeyDt < dt.utcnow() and dtKeyDt > firstPlotTime:
-                runsAndFHours[dtKey] = fHoursShortRun
+    for longRun in longRuns:
+        dtKey = dateInt + (longRun * 100)
+        dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+        if dtKeyDt < dt.utcnow():
+            runsAndFHours[dtKey] = fHoursLongRun
+    for shortRun in shortRuns:
+        dtKey = dateInt + (shortRun * 100)
+        dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+        if dtKeyDt < dt.utcnow():
+            runsAndFHours[dtKey] = fHoursShortRun
     for run in runsAndFHours.copy().keys():
         runfile = path.join(basePath, "output", "metadata", "products", str(productTypeBase), str(run)+".json")
         if path.exists(runfile):
@@ -202,29 +168,20 @@ if __name__ == "__main__":
                 oldArr = runsAndFHours[run]
                 newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
                 runsAndFHours[run] = newArr
-    if path.exists(path.join(basePath, "plotcmds.txt")):
-        with open(path.join(basePath, "plotcmds.txt"), "r") as pltcmdfile:
-            queuedPlotCommands = pltcmdfile.read()
-    else:
-        queuedPlotCommands = ""
     for runInt, hours in runsAndFHours.items():
         failedFHoursThisRun = list()
         runDT = dt.strptime(str(runInt), "%Y%m%d%H%M")
         for fhour in hours:
-            plotCmdString = sys.executable+" "+path.join(basePath, "modelPlot.py")+" "+modelName+" "+str(runInt)+" "+str(fhour)
-            frameFetchDidSucceed = True
-            if plotCmdString not in queuedPlotCommands:
-                frameFetchDidSucceed = False
-                writeToStatus("Fetching "+modelName+" init at "+runDT.strftime("%Y-%m-%d %H:%M")+" forecast hour "+str(fhour))
-                outputDir = path.join(basePath, "modelData", modelName, runDT.strftime("%Y%m%d"), runDT.strftime("%H"), str(fhour))
-                Path(outputDir).mkdir(parents=True, exist_ok=True)
-                if "ecmwf" in modelName:
-                    frameFetchDidSucceed = fetchEuroModel(runDT, fhour, outputDir)
-                else:
-                    frameFetchDidSucceed = fetchNcepModel(runDT, fhour, outputDir, templateString)
+            frameFetchDidSucceed = False
+            print("Fetching "+modelName+" init at "+runDT.strftime("%Y-%m-%d %H:%M")+" forecast hour "+str(fhour))
+            outputDir = path.join(basePath, "modelData", modelName, runDT.strftime("%Y%m%d"), runDT.strftime("%H"), str(fhour))
+            Path(outputDir).mkdir(parents=True, exist_ok=True)
+            if "ecmwf" in modelName:
+                frameFetchDidSucceed = fetchEuroModel(runDT, fhour, outputDir)
+            else:
+                frameFetchDidSucceed = fetchNcepModel(runDT, fhour, outputDir, templateString)
             if frameFetchDidSucceed == False:
                 failedFHoursThisRun.append(fhour)
             if len(failedFHoursThisRun) > 3:
                 break
-    remove(path.join(basePath, "downloaderlock-"+modelName+".txt"))
-    print("Finished downloading for model "+modelName)
+    print("Finished processing for model "+modelName)
