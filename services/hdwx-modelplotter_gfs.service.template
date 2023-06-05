@@ -4,7 +4,6 @@ PartOf=hdwx.target
 
 [Service]
 ExecStart=$pathToPython modelFetch.py gfs
-ExecStop=rsync -ulrH ./output/. $targetDir --exclude=productTypes/ --exclude="*.tmp"
 Restart=always
 RestartSec=30
 WorkingDirectory=$pathToClone/hdwx-modelplotter/
