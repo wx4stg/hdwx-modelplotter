@@ -13,7 +13,7 @@ if __name__ == "__main__":
     if path.exists(modelDataPath):
         for root, dirs, files in walk(modelDataPath):
             for name in files:
-                filepath = path.join(path.join(basePath, root), name)
+                filepath = path.join(basePath, root, name)
                 createTime = dt.fromtimestamp(path.getmtime(filepath))
                 if createTime < now - timedelta(hours=3):
                     remove(filepath)
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if path.exists(outputPath):
         for root, dirs, files in walk(outputPath):
             for name in files:
-                filepath = path.join(path.join(basePath, root), name)
+                filepath = path.join(basePath, root, name)
                 if filepath.endswith(".json"):
                     deleteAfter = timedelta(days=3)
                 else:
