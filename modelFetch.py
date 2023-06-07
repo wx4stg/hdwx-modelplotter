@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from ecmwf.opendata import Client
 import subprocess
+import multiprocessing
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
 modelName = sys.argv[1]
@@ -53,6 +54,9 @@ ncepVarList = {
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")
 
+def runPlotCommands(plotCommand):
+    subprocess.run(plotCommand)
+
 def fetchEuroModel(initRun, fHour, outputDir):
     if modelName == "ecmwf-hres":
         if initRun.hour in [0, 12]:
@@ -63,6 +67,7 @@ def fetchEuroModel(initRun, fHour, outputDir):
             requestedStream = "scda"
     elif modelName == "ecmwf-ens":
         requestedStream = "enfo"
+    plotCommands = []
     for filename, reqVariables in euroVarList.items():
         resDT = ""
         if len(reqVariables) > 0:
@@ -79,16 +84,21 @@ def fetchEuroModel(initRun, fHour, outputDir):
             except Exception as e:
                 print(str(e))
                 return False
-            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
         else:
             resDT = initRun
-            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            subprocess.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+    if "--no-plot" not in sys.argv:
+        print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            p.map(runPlotCommands, plotCommands)
     if resDT == initRun:
         return True
 
 def fetchNcepModel(initRun, fHour, outputDir, templateStr):
     requestedForecastHour = str(f'{fHour:02}')
     requestedForecastHourLong = str(f'{fHour:03}')
+    plotCommands = []
     for filename, reqVariable in ncepVarList.items():
         if filename == "udh.grib2":
             if modelName not in ["namnest", "hrrr"]:
@@ -101,11 +111,15 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:
                     f.write(modelData.content)
-                subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
             else:
                 return False
         else:
-            subprocess.run([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+    if "--no-plot" not in sys.argv:
+        print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
+        with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+            p.map(runPlotCommands, plotCommands)
     return True
 
 if __name__ == "__main__":
