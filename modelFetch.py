@@ -163,7 +163,7 @@ if __name__ == "__main__":
     todayInt = int(today.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     yesterdayInt = int(yesterday.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     runsAndFHours = dict()
-    threshold = today - timedelta(hours=12)
+    threshold = today - timedelta(hours=7)
     for dateInt in [yesterdayInt, todayInt]:
         for longRun in longRuns:
             dtKey = dateInt + (longRun * 100)
