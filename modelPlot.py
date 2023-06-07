@@ -6,7 +6,6 @@ import sys
 from os import path, listdir, remove
 from pathlib import Path
 import xarray as xr
-from metpy import constants
 import metpy
 from metpy import calc as mpcalc
 from cartopy import crs as ccrs
@@ -16,8 +15,6 @@ from matplotlib.gridspec import GridSpec
 import numpy as np
 from datetime import datetime as dt, timedelta
 from matplotlib import colors as pltcolors
-from scipy import ndimage
-import pyart
 import warnings
 
 # modelPlot.py <model> <initialization> <fhour> <field to plot>
@@ -205,11 +202,13 @@ def mslpPlot(standaloneFig, ax=None):
         tempData = tempData.metpy.quantify()
         # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
         # Therefore I implemented the same equation manually...
+        from metpy import constants
         mslpData = barometricPressData * np.exp(orogData*constants.earth_gravity/(constants.dry_air_gas_constant*tempData))
         mslpData = mslpData.metpy.quantify()
         mslpData = mslpData.metpy.convert_units("hPa")
     # Unidata says smoothing MSLP "a little" is... well they didn't comment on why, they just did it, and it makes the rocky mtns less noisy...
     # https://unidata.github.io/python-gallery/examples/MSLP_temp_winds.html
+    from scipy import ndimage
     if modelName == "namnest" or modelName == "hrrr":
         mslpData.data = ndimage.gaussian_filter(mslpData.data, 5)
     else:
@@ -310,6 +309,7 @@ def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
         simDBZ = modelDataArray.refd
     else:
         return
+    import pyart
     cmap = "pyart_ChaseSpectral"
     vmin=-10
     vmax=80
