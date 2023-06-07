@@ -144,18 +144,25 @@ if __name__ == "__main__":
         shortRuns = [hour for hour in list(range(0, 19, 6)) if hour not in longRuns]
         fHoursLongRun = list(range(0, 144, 3)) + list(range(144, 241, 6))
         fHoursShortRun = list(range(0, 91, 3))
-    dateInt = int(dt.utcnow().replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
+    today = dt.utcnow()
+    yesterday = today - timedelta(days=1)
+    todayInt = int(today.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
+    yesterdayInt = int(yesterday.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     runsAndFHours = dict()
-    for longRun in longRuns:
-        dtKey = dateInt + (longRun * 100)
-        dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
-        if dtKeyDt < dt.utcnow():
-            runsAndFHours[dtKey] = fHoursLongRun
-    for shortRun in shortRuns:
-        dtKey = dateInt + (shortRun * 100)
-        dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
-        if dtKeyDt < dt.utcnow():
-            runsAndFHours[dtKey] = fHoursShortRun
+    threshold = today - timedelta(hours=12)
+    for dateInt in [yesterdayInt, todayInt]:
+        for longRun in longRuns:
+            dtKey = dateInt + (longRun * 100)
+            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+            if dtKeyDt < today:
+                if dtKeyDt > threshold:
+                    runsAndFHours[dtKey] = fHoursLongRun
+        for shortRun in shortRuns:
+            dtKey = dateInt + (shortRun * 100)
+            dtKeyDt = dt.strptime(str(dtKey), "%Y%m%d%H%M")
+            if dtKeyDt < today:
+                if dtKeyDt > threshold:
+                    runsAndFHours[dtKey] = fHoursShortRun
     for run in runsAndFHours.copy().keys():
         runfile = path.join(basePath, "output", "metadata", "products", str(productTypeBase), str(run)+".json")
         if path.exists(runfile):
