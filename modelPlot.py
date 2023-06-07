@@ -85,10 +85,9 @@ def staticSFCTempWindMSLPPlot():
 
 def sfcTempPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "t2m.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output/gisproducts/"+modelName+"/sfcT/", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -133,10 +132,9 @@ def sfcTempPlot(standaloneFig, ax=None):
 
 def sfcWindPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sfcwind.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output", "gisproducts", modelName, "sfcWnd", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -178,10 +176,9 @@ def sfcWindPlot(standaloneFig, ax=None):
 
 def mslpPlot(standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "sp.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output/gisproducts/"+modelName+"/sfcMSLP/", runPathExt)
     Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -194,10 +191,9 @@ def mslpPlot(standaloneFig, ax=None):
         barometricPressData = barometricPressData.metpy.quantify()
         orogData = modelDataArray["orog"]
         orogData = orogData.metpy.quantify()
-        [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib")
+            tempData = xr.open_dataset(path.join(inputPath, "t2m.grib2"), engine="cfgrib", backend_kwargs={"indexpath" : ""})
         tempData = tempData["t2m"]
         tempData = tempData.metpy.quantify()
         # I tried using mpcalc altimeter->mslp function here, but it ended up doing nothing and I don't feel like figuring out why
@@ -245,10 +241,9 @@ def mslpPlot(standaloneFig, ax=None):
 
 def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "winds.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"wind", runPathExt)
@@ -296,11 +291,10 @@ def windsAtHeightPlot(pressureLevel, standaloneFig, ax=None):
     return windbarbs
 
 def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     pathToRead = path.join(inputPath, fileToRead)
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     if "refc" in list(modelDataArray.variables):
         prodString = "simrefc"
         simDBZ = modelDataArray.refc
@@ -344,11 +338,10 @@ def simReflectivityPlot(fileToRead, standaloneFig, ax=None):
     return rdr
 
 def updraftHelicityPlot(standaloneFig, ax=None):
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     pathToRead = path.join(inputPath, "udh.grib2")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     udhel = modelDataArray.unknown
     if standaloneFig:
         fig = plt.figure()
@@ -424,10 +417,9 @@ def staticSimDBZPlot(compOrAGL):
 
 def heightsPlot(pressureLevel, standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "heights.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     if pressureLevel not in modelDataArray.isobaricInhPa.values:
         return
     modelDataArray = modelDataArray.sel(isobaricInhPa=pressureLevel)
@@ -477,10 +469,9 @@ def heightsPlot(pressureLevel, standaloneFig, ax=None):
 
 def tempsPlot(pressureLevel, standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "temps.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     if pressureLevel not in modelDataArray.isobaricInhPa.values:
         return
     if "ecmwf" in modelName:
@@ -529,10 +520,9 @@ def tempsPlot(pressureLevel, standaloneFig, ax=None):
 
 def rhPlot(pressureLevel, standaloneFig, ax=None):
     pathToRead = path.join(inputPath, "rh.grib2")
-    [remove(path.join(inputPath, psblIdxFile)) if psblIdxFile.endswith("idx") else None for psblIdxFile in listdir(inputPath)]
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore")
-        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     if pressureLevel not in modelDataArray.isobaricInhPa.values:
         return
     if "ecmwf" in modelName:
@@ -588,7 +578,7 @@ def vort500Plot(standaloneFig, ax=None):
     windsAtHeightPlot(500, False, ax=ax)
     heightsPlot(500, False, ax=ax)
     pathToRead = path.join(inputPath, "winds.grib2")
-    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=500)
+    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""}).sel(isobaricInhPa=500)
     if modelDataArray.u.attrs["GRIB_gridType"] == "regular_ll":
         modelDataArray = modelDataArray.metpy.assign_crs({"grid_mapping_name":"latitude_longitude"})
     elif modelDataArray.u.attrs["GRIB_gridType"] == "lambert":
@@ -653,7 +643,7 @@ def jetIsotachsPlot(standaloneFig, ax=None):
     heightsPlot(250, False, ax=ax)
     windsAtHeightPlot(250, False, ax=ax)
     pathToRead = path.join(inputPath, "winds.grib2")
-    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=250)
+    modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""}).sel(isobaricInhPa=250)
     uwind = modelDataArray.u
     uwind = uwind.metpy.quantify()
     uwind = uwind.metpy.convert_units("kt")
@@ -726,7 +716,7 @@ def rh700Plot(standaloneFig, ax=None):
     mslpPlot(False, ax=ax)
     rhHandle = rhPlot(700, False, ax=ax)
     pathToRead = path.join(inputPath, "heights.grib2")
-    heightsData = xr.open_dataset(pathToRead, engine="cfgrib")
+    heightsData = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
     oneThousandHeights = heightsData.sel(isobaricInhPa=1000).metpy.quantify()
     fiveHundredHeights = heightsData.sel(isobaricInhPa=500).metpy.quantify()
     thicknessData = fiveHundredHeights.gh - oneThousandHeights.gh
