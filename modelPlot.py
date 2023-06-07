@@ -589,6 +589,20 @@ def vort500Plot(standaloneFig, ax=None):
     heightsPlot(500, False, ax=ax)
     pathToRead = path.join(inputPath, "winds.grib2")
     modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib").sel(isobaricInhPa=500)
+    if modelDataArray.u.attrs["GRIB_gridType"] == "regular_ll":
+        modelDataArray = modelDataArray.metpy.assign_crs({"grid_mapping_name":"latitude_longitude"})
+    elif modelDataArray.u.attrs["GRIB_gridType"] == "lambert":
+        modelDataArray = modelDataArray.metpy.assign_crs({
+            "semi_major_axis": 6371200.0,
+            "semi_minor_axis": 6371200.0,
+            "grid_mapping_name": "lambert_conformal_conic",
+            "standard_parallel": [
+                modelDataArray.u.attrs["GRIB_Latin1InDegrees"],
+            modelDataArray.u.attrs["GRIB_Latin2InDegrees"]
+            ],
+            "latitude_of_projection_origin": modelDataArray.u.attrs["GRIB_LaDInDegrees"],
+            "longitude_of_central_meridian": modelDataArray.u.attrs["GRIB_LoVInDegrees"],
+    }).metpy.assign_y_x()
     if modelName == "namnest":
         modelDataArray = modelDataArray.coarsen(y=5, x=5, boundary="trim").mean()
     uwind = modelDataArray.u
