@@ -53,6 +53,7 @@ ncepVarList = {
 }
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")
+plotCounter = 0
 
 def runPlotCommands(plotCommand):
     subprocess.run(plotCommand)
@@ -92,6 +93,9 @@ def fetchEuroModel(initRun, fHour, outputDir):
         print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
             p.map(runPlotCommands, plotCommands)
+        plotCounter = plotCounter + 1
+        if plotCounter >= 10 and "--i-want-backfill" not in sys.argv:
+            exit()
     if resDT == initRun:
         return True
 
@@ -120,6 +124,9 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
         print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
             p.map(runPlotCommands, plotCommands)
+        plotCounter = plotCounter + 1
+        if plotCounter >= 10 and "--i-want-backfill" not in sys.argv:
+            exit()
     return True
 
 if __name__ == "__main__":
