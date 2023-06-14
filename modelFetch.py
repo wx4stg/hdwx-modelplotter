@@ -131,6 +131,10 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
 
 if __name__ == "__main__":
     print("Statring download routine for model "+modelName)
+    today = dt.utcnow()
+    yesterday = today - timedelta(days=1)
+    todayInt = int(today.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
+    yesterdayInt = int(yesterday.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     if modelName == "gfs":
         productTypeBase = 300
         longRuns = list(range(0, 19, 6))
@@ -138,6 +142,7 @@ if __name__ == "__main__":
         fHoursLongRun = list(range(0, 385, 3))
         fHoursShortRun = list()
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25_1hr.pl?file=gfs.t<MODEL_INIT_TIME>z.pgrb2.0p25.f<FHOUR_LONG><REQUESTED_VARIABLE>gfs.<MODEL_INIT_DATE>%2F<MODEL_INIT_TIME>%2Fatmos"
+        threshold = today - timedelta(hours=7)
     elif modelName == "nam":
         productTypeBase = 500
         longRuns = list(range(0, 19, 6))
@@ -145,6 +150,7 @@ if __name__ == "__main__":
         fHoursLongRun = list(range(0, 36, 1)) + list(range(36, 85, 3))
         fHoursShortRun = list()
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam.pl?file=nam.t<MODEL_INIT_TIME>z.awphys<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+        threshold = today - timedelta(hours=7)
     elif modelName == "namnest":
         productTypeBase = 600
         longRuns = list(range(0, 19, 6))
@@ -152,6 +158,7 @@ if __name__ == "__main__":
         fHoursLongRun = list(range(0, 61, 1))
         fHoursShortRun = list()
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_nam_conusnest.pl?file=nam.t<MODEL_INIT_TIME>z.conusnest.hiresf<FHOUR_SHORT>.tm00.grib2<REQUESTED_VARIABLE>nam.<MODEL_INIT_DATE>"
+        threshold = today - timedelta(hours=7)
     elif modelName == "hrrr":
         productTypeBase = 800
         longRuns = list(range(0, 19, 6))
@@ -159,18 +166,15 @@ if __name__ == "__main__":
         fHoursLongRun = list(range(0, 49, 1))
         fHoursShortRun = list(range(0, 19, 1))
         templateString = "https://nomads.ncep.noaa.gov/cgi-bin/filter_hrrr_2d.pl?file=hrrr.t<MODEL_INIT_TIME>z.wrfsfcf<FHOUR_SHORT>.grib2<REQUESTED_VARIABLE>hrrr.<MODEL_INIT_DATE>%2Fconus"
+        threshold = today - timedelta(hours=2)
     elif modelName == "ecmwf-hres":
         productTypeBase = 1000
         longRuns = list(range(0, 13, 12))
         shortRuns = [hour for hour in list(range(0, 19, 6)) if hour not in longRuns]
         fHoursLongRun = list(range(0, 144, 3)) + list(range(144, 241, 6))
         fHoursShortRun = list(range(0, 91, 3))
-    today = dt.utcnow()
-    yesterday = today - timedelta(days=1)
-    todayInt = int(today.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
-    yesterdayInt = int(yesterday.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
+        threshold = today - timedelta(hours=14)
     runsAndFHours = dict()
-    threshold = today - timedelta(hours=7)
     for dateInt in [yesterdayInt, todayInt]:
         for longRun in longRuns:
             dtKey = dateInt + (longRun * 100)
