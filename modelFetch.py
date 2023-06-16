@@ -59,6 +59,7 @@ def runPlotCommands(plotCommand):
     subprocess.run(plotCommand)
 
 def fetchEuroModel(initRun, fHour, outputDir):
+    global plotCounter
     if modelName == "ecmwf-hres":
         if initRun.hour in [0, 12]:
             requestedType = "fc"
@@ -88,7 +89,7 @@ def fetchEuroModel(initRun, fHour, outputDir):
             plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
         else:
             resDT = initRun
-            subprocess.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
     if "--no-plot" not in sys.argv:
         print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
@@ -100,6 +101,7 @@ def fetchEuroModel(initRun, fHour, outputDir):
         return True
 
 def fetchNcepModel(initRun, fHour, outputDir, templateStr):
+    global plotCounter
     requestedForecastHour = str(f'{fHour:02}')
     requestedForecastHourLong = str(f'{fHour:03}')
     plotCommands = []
