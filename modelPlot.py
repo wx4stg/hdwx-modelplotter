@@ -3,7 +3,7 @@
 # Created 9 September 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from os import path, listdir, remove
+from os import path
 from pathlib import Path
 import xarray as xr
 import metpy
@@ -813,6 +813,76 @@ def fourPanelPlot():
         fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
     plt.close(fig)
 
+def staticDewWindMSLPPlot():
+    fig = plt.figure()
+    px = 1/plt.rcParams["figure.dpi"]
+    fig.set_size_inches(1920*px, 1080*px)
+    ax = plt.axes(projection=ccrs.LambertConformal())
+    ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    contourmap = sfcDewPlot(False, ax=ax)
+    sfcWindPlot(False, ax=ax)
+    mslpPlot(False, ax=ax)
+    ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
+    ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
+    validTime = initDateTime + timedelta(hours=fhour)
+    if "ecmwf" in modelName:
+        noticeStr = "Copyright © "+initDateTime.strftime("%Y")+" European Centre for Medium-Range Weather Forecasts (ECMWF)\nhttps://www.ecmwf.int/"
+    else:
+        noticeStr = None
+    if hasHelpers:
+        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Dew Point Temp, 10m Winds, MSLP", validTime, fhour=fhour, notice=noticeStr, plotHandle=contourmap, cbextend="both", colorbarLabel="Dew Point (°F)")
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTdWndMSLP/"+runPathExt)
+    Path(staticSavePath).mkdir(parents=True, exist_ok=True)
+    gisInfo = ["0,0", "0,0"]
+    productId = productTypeBase + 5
+    if hasHelpers:
+        HDWX_helpers.saveImage(fig, path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+        HDWX_helpers.writeJson(basePath, productId, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+    else:
+        fig.savefig(path.join(staticSavePath, "f"+str(fhour)+".png"), bbox_inches="tight")
+    plt.close(fig)
+
+def sfcDewPlot(standaloneFig, ax=None):
+    pathToRead = path.join(inputPath, "td2m.grib2")
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
+        modelDataArray = xr.open_dataset(pathToRead, engine="cfgrib", backend_kwargs={"indexpath" : ""})
+    runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
+    gisSavePath = path.join(basePath, "output/gisproducts/"+modelName+"/sfcTd/", runPathExt)
+    Path(gisSavePath).mkdir(parents=True, exist_ok=True)
+    dewData = modelDataArray["d2m"]
+    dewData = dewData.metpy.quantify()
+    dewData = dewData.metpy.convert_units("degF")
+    if standaloneFig:
+        fig = plt.figure()
+        px = 1/plt.rcParams["figure.dpi"]
+        fig.set_size_inches(1920*px, 1080*px)
+        ax = plt.axes(projection=ccrs.epsg(3857))
+        ax.set_extent(axExtent, crs=ccrs.PlateCarree())
+    if modelName == "gfs" or modelName == "ecmwf-hres":
+        lonsToPlot = np.tile(np.array([dewData.longitude.data]), (dewData.data.shape[0], 1))
+        latsToPlot = np.tile(dewData.latitude.data, (dewData.data.shape[1], 1)).transpose()
+    else:
+        lonsToPlot = dewData.longitude
+        latsToPlot = dewData.latitude
+    levelsToContour = np.arange(10, 91, 5)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, dewData, levels=levelsToContour,  cmap="BrBG", transform=ccrs.PlateCarree(), transform_first=True, extend="both")
+    contourLabels = ax.clabel(contourmap, levels=levelsToContour, inline=True, fontsize=10, colors="black")
+    [label.set_rotation(0) for label in contourLabels]
+    [label.set_text(label.get_text()+"F") for label in contourLabels]
+    if standaloneFig:
+        set_size(1920*px, 1080*px, ax=ax)
+        extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
+        gisInfo = [str(axExtent[2])+","+str(axExtent[0]), str(axExtent[3])+","+str(axExtent[1])]
+        validTime = initDateTime + timedelta(hours=fhour)
+        if hasHelpers:
+            HDWX_helpers.saveImage(fig, path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+            HDWX_helpers.writeJson(basePath, productTypeBase+4, initDateTime, "f"+str(fhour)+".png", validTime, gisInfo, 60)
+        else:
+            fig.savefig(path.join(gisSavePath, "f"+str(fhour)+".png"), transparent=True, bbox_inches=extent)
+        plt.close(fig)
+    return contourmap
 
 if __name__ == "__main__":
     print(str("Plotting init "+str(initDateTime.hour)+"Z f"+str(fhour)+" "+modelName+" "+fieldToPlot))
@@ -828,6 +898,7 @@ if __name__ == "__main__":
     tempsPath = path.join(inputPath, "temps.grib2")
     dewpointPath = path.join(inputPath, "dwpt.grib2")
     rhPath = path.join(inputPath, "rh.grib2")
+    surfaceDewPath = path.join(inputPath, "td2m.grib2")
     if path.exists(inputPath):
         if fieldToPlot == "t2m" and path.exists(sfcTempPath):
             sfcTempPlot(True)
@@ -873,3 +944,7 @@ if __name__ == "__main__":
             rh700Plot(True)
         if fieldToPlot == "4pnl" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath) and path.exists(sfcPressPath) and path.exists(rhPath):
             fourPanelPlot()
+        if fieldToPlot == "td2m" and path.exists(surfaceDewPath):
+            sfcDewPlot(True)
+        if fieldToPlot == "dewcomposite" and path.exists(surfaceDewPath) and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
+            staticDewWindMSLPPlot()

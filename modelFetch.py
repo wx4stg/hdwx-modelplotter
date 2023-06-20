@@ -13,7 +13,7 @@ from ecmwf.opendata import Client
 import subprocess
 import multiprocessing
 
-# modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr">
+# modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr"/"ecmwf-hres">
 modelName = sys.argv[1]
 euroVarList = {
     "t2m.grib2" : ["2t"],
@@ -48,8 +48,9 @@ ncepVarList = {
     "jetisotachs" : "",
     "850temps" : "",
     "700rh" : "",
-    "4pnl" : ""
-
+    "4pnl" : "",
+    "td2m.grib2" : "&var_DPT=on&lev_2_m_above_ground=on&subregion=&toplat=54.5&leftlon=-144.5&rightlon=-44.5&bottomlat=14.5&dir=%2F", # 2m dewpoint
+    "dewcomposite" : ""
 }
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")
@@ -113,6 +114,7 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
             urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", reqVariable).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
             if modelName == "hrrr" and "&lev_700_mb=on&var_RH=on" in reqVariable:
                 urlToFetch = urlToFetch.replace("&lev_700_mb=on&var_RH=on", "&lev_700_mb=on&var_DPT=on&var_TMP=on")
+            print(urlToFetch)
             modelData = requests.get(urlToFetch)
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:
