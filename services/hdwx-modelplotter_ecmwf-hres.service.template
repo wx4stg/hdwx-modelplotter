@@ -3,9 +3,10 @@ Description=hdwx-modelplotter_ecmwf-hres
 PartOf=hdwx.target
 
 [Service]
-ExecStart=$pathToPython modelFetch.py ecmwf-hres
+ExecStart=$pathToPython modelFetch.py ecmwf-hres $shouldGIS
 Restart=always
 RestartSec=30
+RuntimeMaxSec=14400
 WorkingDirectory=$pathToClone/hdwx-modelplotter/
 User=$myUsername
 SyslogIdentifier=hdwx-modelplotter_ecmwf-hres

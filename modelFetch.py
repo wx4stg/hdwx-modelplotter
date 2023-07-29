@@ -87,10 +87,16 @@ def fetchEuroModel(initRun, fHour, outputDir):
             except Exception as e:
                 print(str(e))
                 return False
-            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            if "--no-gis" in sys.argv:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", ""), "--no-gis"])
+            else:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
         else:
             resDT = initRun
-            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            if "--no-gis" in sys.argv:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", ""), "--no-gis"])
+            else:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
     if "--no-plot" not in sys.argv:
         print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
@@ -119,11 +125,17 @@ def fetchNcepModel(initRun, fHour, outputDir, templateStr):
             if "GRIB" in modelData.text:
                 with open(path.join(outputDir, filename), "wb") as f:
                     f.write(modelData.content)
-                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+                if "--no-gis" in sys.argv:
+                    plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", ""), "--no-gis"])
+                else:
+                    plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
             else:
                 return False
         else:
-            plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
+            if "--no-gis" in sys.argv:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", ""), "--no-gis"])
+            else:
+                plotCommands.append([sys.executable, path.join(basePath, "modelPlot.py"), modelName, initRun.strftime("%Y%m%d%H%M"), str(fHour), filename.replace(".grib2", "")])
     if "--no-plot" not in sys.argv:
         print("Plotting on "+str(multiprocessing.cpu_count())+" cores")
         with multiprocessing.Pool(multiprocessing.cpu_count()) as p:

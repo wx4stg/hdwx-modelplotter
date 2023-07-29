@@ -900,19 +900,19 @@ if __name__ == "__main__":
     rhPath = path.join(inputPath, "rh.grib2")
     surfaceDewPath = path.join(inputPath, "td2m.grib2")
     if path.exists(inputPath):
-        if fieldToPlot == "t2m" and path.exists(sfcTempPath):
+        if fieldToPlot == "t2m" and path.exists(sfcTempPath) and "--no-gis" not in sys.argv:
             sfcTempPlot(True)
-        if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath):
+        if fieldToPlot == "sfcwind" and path.exists(sfcWindsPath) and "--no-gis" not in sys.argv:
             sfcWindPlot(True)
-        if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath):
+        if fieldToPlot == "sp" and path.exists(sfcPressPath) and path.exists(sfcTempPath) and "--no-gis" not in sys.argv:
             mslpPlot(True)
         if fieldToPlot == "sfccomposite" and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
             staticSFCTempWindMSLPPlot()
-        if fieldToPlot == "winds" and path.exists(windsAtHeightPath):
+        if fieldToPlot == "winds" and path.exists(windsAtHeightPath) and "--no-gis" not in sys.argv:
             [windsAtHeightPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
-        if fieldToPlot == "refc" and path.exists(compositeReflectivityPath):
+        if fieldToPlot == "refc" and path.exists(compositeReflectivityPath) and "--no-gis" not in sys.argv:
             simReflectivityPlot("refc.grib2", True)
-        if fieldToPlot == "udh" and path.exists(updraftHelicityPath):
+        if fieldToPlot == "udh" and path.exists(updraftHelicityPath) and "--no-gis" not in sys.argv:
             updraftHelicityPlot(True)
         if fieldToPlot == "refccomposite" and path.exists(compositeReflectivityPath) and path.exists(sfcWindsPath):
             if modelName in ["namnest", "hrrr"] and fhour != 0:
@@ -920,7 +920,7 @@ if __name__ == "__main__":
                     staticSimDBZPlot("refccomposite")
             else:
                 staticSimDBZPlot("refccomposite")
-        if fieldToPlot == "refd" and path.exists(aglReflectivityPath):
+        if fieldToPlot == "refd" and path.exists(aglReflectivityPath) and "--no-gis" not in sys.argv:
             simReflectivityPlot("refd.grib2", True)
         if fieldToPlot == "refdcomposite" and path.exists(aglReflectivityPath) and path.exists(sfcWindsPath):
             if modelName in ["namnest", "hrrr"] and fhour != 0:
@@ -928,11 +928,11 @@ if __name__ == "__main__":
                     staticSimDBZPlot("refdcomposite")
             else:
                 staticSimDBZPlot("refdcomposite")
-        if fieldToPlot == "heights" and path.exists(heightsPath):
+        if fieldToPlot == "heights" and path.exists(heightsPath) and "--no-gis" not in sys.argv:
             [heightsPlot(pressSfc, True) for pressSfc in [250, 500, 850]]
-        if fieldToPlot == "temps" and path.exists(tempsPath):
+        if fieldToPlot == "temps" and path.exists(tempsPath) and "--no-gis" not in sys.argv:
             [tempsPlot(pressSfc, True) for pressSfc in [850]]
-        if fieldToPlot == "rh" and path.exists(rhPath):
+        if fieldToPlot == "rh" and path.exists(rhPath) and "--no-gis" not in sys.argv:
             [rhPlot(pressSfc, True) for pressSfc in [700]]
         if fieldToPlot == "500vort" and path.exists(heightsPath) and path.exists(windsAtHeightPath):
             vort500Plot(True)
@@ -944,7 +944,7 @@ if __name__ == "__main__":
             rh700Plot(True)
         if fieldToPlot == "4pnl" and path.exists(heightsPath) and path.exists(windsAtHeightPath) and path.exists(tempsPath) and path.exists(sfcPressPath) and path.exists(rhPath):
             fourPanelPlot()
-        if fieldToPlot == "td2m" and path.exists(surfaceDewPath):
+        if fieldToPlot == "td2m" and path.exists(surfaceDewPath) and "--no-gis" not in sys.argv:
             sfcDewPlot(True)
         if fieldToPlot == "dewcomposite" and path.exists(surfaceDewPath) and path.exists(sfcTempPath) and path.exists(sfcWindsPath) and path.exists(sfcPressPath):
             staticDewWindMSLPPlot()
