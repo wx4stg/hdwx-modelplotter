@@ -4,7 +4,7 @@
 
 import sys
 from datetime import datetime as dt, timedelta
-from os import path
+from os import path, listdir
 import json
 import requests
 from pathlib import Path
@@ -205,7 +205,9 @@ if __name__ == "__main__":
                 if dtKeyDt > threshold:
                     runsAndFHours[dtKey] = fHoursShortRun
     for run in runsAndFHours.copy().keys():
-        runfile = path.join(basePath, "output", "metadata", "products", str(productTypeBase), str(run)+".json")
+        runFileDirs = [d for d in listdir(path.join(basePath, "output", "metadata", "products")) if path.isdir(path.join(basePath, "output", "metadata", "products", d))]
+        runFileDirs = sorted(runFileDirs, reverse=True)
+        runfile = path.join(basePath, "output", "metadata", "products", runFileDirs[0], str(run)+".json")
         if path.exists(runfile):
             with open(runfile) as jsonRead:
                 runMetadata = json.load(jsonRead)
