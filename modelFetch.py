@@ -205,19 +205,20 @@ if __name__ == "__main__":
                 if dtKeyDt > threshold:
                     runsAndFHours[dtKey] = fHoursShortRun
     for run in runsAndFHours.copy().keys():
-        runFileDirs = [d for d in listdir(path.join(basePath, "output", "metadata", "products")) if path.isdir(path.join(basePath, "output", "metadata", "products", d))]
+        runFileDirs = [d for d in listdir(path.join(basePath, "output", "metadata", "products")) if path.isdir(path.join(basePath, "output", "metadata", "products", d)) and int(d) <= productTypeBase+99 and int(d) >= productTypeBase]
         runFileDirs = sorted(runFileDirs, reverse=True)
-        runfile = path.join(basePath, "output", "metadata", "products", runFileDirs[0], str(run)+".json")
-        if path.exists(runfile):
-            with open(runfile) as jsonRead:
-                runMetadata = json.load(jsonRead)
-            if runMetadata["availableFrameCount"] == runMetadata["totalFrameCount"]:
-                runsAndFHours.pop(run)
-            else:
-                frmsToDelete = [frame["fhour"] for frame in runMetadata["productFrames"]]
-                oldArr = runsAndFHours[run]
-                newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
-                runsAndFHours[run] = newArr
+        if len(runFileDirs) > 0:
+            runfile = path.join(basePath, "output", "metadata", "products", runFileDirs[0], str(run)+".json")
+            if path.exists(runfile):
+                with open(runfile) as jsonRead:
+                    runMetadata = json.load(jsonRead)
+                if runMetadata["availableFrameCount"] == runMetadata["totalFrameCount"]:
+                    runsAndFHours.pop(run)
+                else:
+                    frmsToDelete = [frame["fhour"] for frame in runMetadata["productFrames"]]
+                    oldArr = runsAndFHours[run]
+                    newArr = [oldRun for oldRun in oldArr if oldRun not in frmsToDelete]
+                    runsAndFHours[run] = newArr
     for runInt, hours in runsAndFHours.items():
         failedFHoursThisRun = list()
         runDT = dt.strptime(str(runInt), "%Y%m%d%H%M")
