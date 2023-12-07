@@ -825,12 +825,8 @@ def staticDewWindMSLPPlot():
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     validTime = initDateTime + timedelta(hours=fhour)
-    if "ecmwf" in modelName:
-        noticeStr = "Copyright © "+initDateTime.strftime("%Y")+" European Centre for Medium-Range Weather Forecasts (ECMWF)\nhttps://www.ecmwf.int/"
-    else:
-        noticeStr = None
     if hasHelpers:
-        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Dew Point Temp, 10m Winds, MSLP", validTime, fhour=fhour, notice=noticeStr, plotHandle=contourmap, cbextend="both", colorbarLabel="Dew Point (°F)")
+        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Dew Point Temp, 10m Winds, MSLP", validTime, fhour=fhour, plotHandle=contourmap, cbextend="both", colorbarLabel="Dew Point (°F)")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTdWndMSLP/"+runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
