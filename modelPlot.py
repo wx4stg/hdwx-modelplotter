@@ -65,12 +65,8 @@ def staticSFCTempWindMSLPPlot():
     ax.add_feature(cfeat.STATES.with_scale("50m"), linewidth=0.5)
     ax.add_feature(cfeat.COASTLINE.with_scale("50m"), linewidth=0.5)
     validTime = initDateTime + timedelta(hours=fhour)
-    if "ecmwf" in modelName:
-        noticeStr = "Copyright © "+initDateTime.strftime("%Y")+" European Centre for Medium-Range Weather Forecasts (ECMWF)\nhttps://www.ecmwf.int/"
-    else:
-        noticeStr = None
     if hasHelpers:
-        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP", validTime, fhour=fhour, notice=noticeStr, plotHandle=contourmap, cbticks=np.sort(np.append(np.arange(-40, 120, 10), 32)), tickhighlight=32, cbextend="both", colorbarLabel="Temperature (°F)")
+        HDWX_helpers.dressImage(fig, ax, initDateTime.strftime("%H")+"Z "+modelName.upper()+"\n2m Temp, 10m Winds, MSLP", validTime, fhour=fhour, notice=None, plotHandle=contourmap, cbticks=np.sort(np.append(np.arange(-40, 120, 10), 32)), tickhighlight=32, cbextend="both", colorbarLabel="Temperature (°F)")
     runPathExt = initDateTime.strftime("%Y/%m/%d/%H%M")
     staticSavePath = path.join(basePath, "output/products/"+modelName+"/sfcTWndMSLP/"+runPathExt)
     Path(staticSavePath).mkdir(parents=True, exist_ok=True)
