@@ -11,9 +11,7 @@ from pathlib import Path
 import sys
 from ecmwf.opendata import Client
 import subprocess
-from bs4 import BeautifulSoup
-import numpy as np
-
+import multiprocessing
 
 # modelFetch.py <"gfs"/"nam"/"namnest"/"hrrr"/"ecmwf-hres">
 modelName = sys.argv[1]
@@ -54,36 +52,6 @@ ncepVarList = {
     "td2m.grib2" : "&var_DPT=on&lev_2_m_above_ground=on&subregion=&toplat=54.5&leftlon=-144.5&rightlon=-44.5&bottomlat=14.5&dir=%2F", # 2m dewpoint
     "dewcomposite" : ""
 }
-
-modelAvailableChecks = {
-    'gfs' : {
-        'url' : 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.%Y%m%d/%H/atmos/',
-        'prefix' : 'gfs.t%Hz.pgrb2.0p25.f',
-        'count' : 3
-    },
-    'nam' : {
-        'url' : 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/nam.%Y%m%d/',
-        'prefix' : 'nam.t%Hz.awphys',
-        'count' : 2
-    },
-    'namnest' : {
-        'url' : 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/nam/prod/nam.%Y%m%d/',
-        'prefix' : 'nam.t%Hz.conusnest.hiresf',
-        'count' : 2
-    },
-    'hrrr' : {
-        'url' : 'https://nomads.ncep.noaa.gov/pub/data/nccf/com/hrrr/prod/hrrr.%Y%m%d/conus/',
-        'prefix' : 'hrrr.t%Hz.wrfsfcf',
-        'count' : 2
-    },
-    'ecmwf-hres' : {
-        'url' : 'https://data.ecmwf.int/forecasts/%Y%m%d/%Hz/ifs/0p25/oper/',
-        'prefix' : 'nam.t%Hz.conusnest.hiresf',
-        'split' : 1
-    }
-}
-
-
 basePath = path.dirname(path.abspath(__file__))
 client = Client(source="ecmwf")
 plotCounter = 0
