@@ -1,15 +1,15 @@
 [Unit]
-Description=hdwx-modelplotter_hrrr
+Description=hdwx-modelplotter_fetchplot
 PartOf=hdwx.target
 
 [Service]
-ExecStart=$pathToPython modelFetch.py hrrr $shouldGIS
+ExecStart=$pathToPython modelFetch.py $shouldGIS
 Restart=always
 RestartSec=30
 RuntimeMaxSec=14400
 WorkingDirectory=$pathToClone/hdwx-modelplotter/
 User=$myUsername
-SyslogIdentifier=hdwx-modelplotter_hrrr
+SyslogIdentifier=hdwx-modelplotter_fetchplot
 
 [Install]
 WantedBy=hdwx.target
