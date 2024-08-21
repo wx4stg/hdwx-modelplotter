@@ -179,7 +179,7 @@ def mslpPlot(modelDataArray, standaloneFig, modelName, productTypeBase=None, ini
     # Unidata says smoothing MSLP "a little" is... well they didn't comment on why, they just did it, and it makes the rocky mtns less noisy...
     # https://unidata.github.io/python-gallery/examples/MSLP_temp_winds.html
     from scipy import ndimage
-    smoothVal = 5 if modelName in ["namnest", "hrrr"] else 3
+    smoothVal = 7 if modelName in ["namnest", "hrrr"] else 3
     mslpData.data = ndimage.gaussian_filter(mslpData.data, smoothVal)
     if standaloneFig:
         fig = plt.figure()
@@ -194,7 +194,7 @@ def mslpPlot(modelDataArray, standaloneFig, modelName, productTypeBase=None, ini
         lonsToPlot = mslpData.longitude
         latsToPlot = mslpData.latitude
     levelsToContour = np.arange((np.nanmin(mslpData.data) // 2) * 2, np.nanmax(mslpData.data)+2, 2)
-    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=levelsToContour, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, mslpData, levels=levelsToContour, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1.5)
     contourLabels = ax.clabel(contourmap, levels=levelsToContour, inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
@@ -321,7 +321,7 @@ def updraftHelicityPlot(modelDataArray, standaloneFig, modelName, productTypeBas
         latsToPlot = udhel.latitude
     if np.nanmax(udhel.data) > 50:
         ax.contourf(lonsToPlot, latsToPlot, udhel, levels=[50, 999999], cmap="Greys", vmin=0, vmax=100, transform=ccrs.PlateCarree(), zorder=2, transform_first=True, alpha=0.5)
-        ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=0.5)
+        ax.contour(lonsToPlot, latsToPlot, udhel, levels=[50], colors="black", transform=ccrs.PlateCarree(), zorder=2, transform_first=True, linewidths=1)
     if standaloneFig:
         set_size(1920*px, 1080*px, ax=ax)
         extent = ax.get_tightbbox(fig.canvas.get_renderer()).transformed(fig.dpi_scale_trans.inverted())
@@ -403,7 +403,7 @@ def heightsPlot(modelDataArray, pressureLevel, standaloneFig, modelName, product
         contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+121, 120)
     else:
         contourLevels = np.arange((np.nanmin(heightData.data.magnitude // 100)*100 - 100), np.nanmax(heightData.data.magnitude)+61, 60)
-    contourmap = ax.contour(lonsToPlot, latsToPlot, heightData.data, levels=contourLevels, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=0.5, zorder=2)
+    contourmap = ax.contour(lonsToPlot, latsToPlot, heightData.data, levels=contourLevels, colors="black", transform=ccrs.PlateCarree(), transform_first=True, linewidths=1.5, zorder=2)
     contourLabels = ax.clabel(contourmap, levels=contourLevels, inline=True, fontsize=10)
     [label.set_rotation(0) for label in contourLabels]
     if standaloneFig:
@@ -687,9 +687,9 @@ def rh700Plot(datasets, standaloneFig, modelName, productTypeBase=None, initDate
         latsToPlot = thicknessData.latitude
     coldLevels = np.arange(5340, np.nanmin(thicknessData.data.magnitude)-.01, -60)[::-1]
     hotLevels = np.arange(5460, np.nanmax(thicknessData.data.magnitude)+.01, 60)
-    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=0.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
-    criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=2, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
-    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=0.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    coldContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="blue", levels=coldLevels, linewidths=1.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    criticalContour = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=[5400], linewidths=3, transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
+    hotContours = ax.contour(lonsToPlot, latsToPlot, thicknessData, colors="red", levels=hotLevels, linewidths=1.5, linestyles="dashdot", transform=ccrs.PlateCarree(), transform_first=True, zorder=2)
     coldLabels = ax.clabel(coldContours, levels=coldLevels, inline=True, fontsize=10)
     [label.set_rotation(0) for label in coldLabels]
     hotLabels = ax.clabel(hotContours, levels=hotLevels, inline=True, fontsize=10)
