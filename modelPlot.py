@@ -202,7 +202,7 @@ def mslpPlot(standaloneFig, ax=None):
     # https://unidata.github.io/python-gallery/examples/MSLP_temp_winds.html
     from scipy import ndimage
     if modelName == "namnest" or modelName == "hrrr":
-        mslpData.data = ndimage.gaussian_filter(mslpData.data, 5)
+        mslpData.data = ndimage.gaussian_filter(mslpData.data, 7)
     else:
         mslpData.data = ndimage.gaussian_filter(mslpData.data, 3)
     if standaloneFig:
