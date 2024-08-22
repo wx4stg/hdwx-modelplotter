@@ -3,7 +3,7 @@
 # Created 17 October 2021 by Sam Gardner <stgardner4@tamu.edu>
 
 import sys
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, timedelta, UTC
 from os import path, listdir
 import json
 import requests
@@ -132,7 +132,7 @@ def fetchNcepModel(initRun, fHour, templateStr):
 
 def fetchFramesForModel(modelName):
     print("Statring download routine for model "+modelName)
-    today = dt.utcnow()
+    today = dt.now(UTC).replace(tzinfo=None)
     yesterday = today - timedelta(days=1)
     todayInt = int(today.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
     yesterdayInt = int(yesterday.replace(hour=0, minute=0, second=0, microsecond=0).strftime("%Y%m%d0000"))
