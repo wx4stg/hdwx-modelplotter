@@ -140,7 +140,9 @@ def sfcWindPlot(modelDataArray, standaloneFig, modelName, productTypeBase=None, 
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 40), slice(None, None, 40))
         dataLimit = (slice(None, None, 40), slice(None, None, 40))
-    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit],
+                         uwind.data[dataLimit].m.compute(), vwind.data[dataLimit].m.compute(),
+                         pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
     if standaloneFig:
         gisSavePath = path.join(basePath, "output", "gisproducts", modelName, "sfcWnd", runPathExt)
         Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -238,7 +240,9 @@ def windsAtHeightPlot(modelDataArray, pressureLevel, standaloneFig, modelName, p
     elif modelName == "namnest" or modelName == "hrrr":
         spatialLimit = (slice(None, None, 80), slice(None, None, 80))
         dataLimit = (slice(None, None, 80), slice(None, None, 80))
-    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit], uwind.data[dataLimit], vwind.data[dataLimit], pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
+    windbarbs = ax.barbs(uwind.longitude.data[spatialLimit], uwind.latitude.data[spatialLimit],
+                         uwind.data[dataLimit].m.compute(), vwind.data[dataLimit].m.compute(),
+                         pivot='middle', color='black', transform=ccrs.PlateCarree(), length=5, linewidth=0.5, zorder=2)
     if standaloneFig:
         gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"wind", runPathExt)
         Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -501,7 +505,8 @@ def rhPlot(modelDataArray, pressureLevel, standaloneFig, modelName, productTypeB
     levelsToContour = np.arange(60, 110, 10)
     rhArr = np.array([[1, 185/255, 0, 1], [0, 1, 0, 1], [0, 200/255, 0, 1], [0, 139/255, 0, 1]])
     rhcm = pltcolors.LinearSegmentedColormap.from_list("hdwx-humidity", rhArr)
-    contourmap = ax.contourf(lonsToPlot, latsToPlot, rhData.data.clip(0,100), levels=levelsToContour,  cmap=rhcm, vmin=60, vmax=100, transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
+    contourmap = ax.contourf(lonsToPlot, latsToPlot, np.clip(a=rhData.data, a_min=0, a_max=100), levels=levelsToContour, 
+                             cmap=rhcm, vmin=60, vmax=100, transform=ccrs.PlateCarree(), transform_first=True, zorder=1)
     if standaloneFig:
         gisSavePath = path.join(basePath, "output", "gisproducts", modelName, str(pressureLevel)+"rh", runPathExt)
         Path(gisSavePath).mkdir(parents=True, exist_ok=True)
@@ -841,7 +846,11 @@ def sfcDewPlot(modelDataArray, standaloneFig, modelName, productTypeBase=None, i
     return contourmap
 
 
-def plot_all(datasets_unorganized,  modelName, shouldGIS):
+def plot_all(dataset_paths,  modelName, shouldGIS):
+    datasets_unorganized = []
+    for ds_path in dataset_paths:
+        datasets_this_path = cfgrib.open_datasets(ds_path, chunks='auto')
+        datasets_unorganized.extend(datasets_this_path)
     if modelName == "gfs":
         productTypeBase = 300
     elif modelName == "nam":

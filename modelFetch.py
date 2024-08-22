@@ -12,7 +12,6 @@ from ecmwf.opendata import Client
 import tempfile
 from bs4 import BeautifulSoup
 import numpy as np
-import cfgrib
 from modelPlot import plot_all
 
 
@@ -77,11 +76,10 @@ def fetchEuroModel(initRun, fHour):
         requestedType = "fc"
         requestedStream = "scda"
     should_gis = ("--no-gis" not in sys.argv)
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile(delete=False) as f:
         ecmwf.retrieve(type=requestedType, stream=requestedStream, date=initRun,
             step=fHour, resol="0p25",param=euroVarList,target=f.name)
-        datasets = cfgrib.open_datasets(f.name)
-        plot_all(datasets, 'ecmwf-hres', should_gis)
+        plot_all([f.name], 'ecmwf-hres', should_gis)
 
 def fetchNcepModel(initRun, fHour, templateStr):
     global ncepVarListMaster
@@ -108,7 +106,7 @@ def fetchNcepModel(initRun, fHour, templateStr):
         if hrrr_upper_air_data.text.startswith('GRIB'):
             with tempfile.NamedTemporaryFile(delete=False) as f:
                 f.write(hrrr_upper_air_data.content)
-                hrrr_upper_air_data = [ds.load() for ds in cfgrib.open_datasets(f.name)]
+                hrrr_upper_air_data = [f.name]
         else:
             if 'Data file is not present:' in hrrr_upper_air_data.text:
                 return
@@ -118,11 +116,10 @@ def fetchNcepModel(initRun, fHour, templateStr):
     urlToFetch = templateStr.replace("<REQUESTED_VARIABLE>", ncepVarList).replace("<MODEL_INIT_TIME>", initRun.strftime("%H")).replace("<MODEL_INIT_DATE>", initRun.strftime("%Y%m%d")).replace("<FHOUR_LONG>", requestedForecastHourLong).replace("<FHOUR_SHORT>", requestedForecastHour)
     modelData = requests.get(urlToFetch)
     if modelData.text.startswith('GRIB'):
-        datasets = {}
         should_gis = ("--no-gis" not in sys.argv)
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             f.write(modelData.content)
-            datasets = cfgrib.open_datasets(f.name)
+            datasets = [f.name]
             datasets.extend(hrrr_upper_air_data)
             plot_all(datasets, modelName, should_gis)
     else:
